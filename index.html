@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>gsn2xwasm test</title>
+</head>
+<body>
+    <h2>Specify your GSN here (see example and documentation)</h2>
+    <textarea id="yaml-input" rows="12" cols="60">G1:
+  text: This is the top-most Goal
+  supportedBy: [S1]
+  inContextOf: [C1]
+S1:
+  text: This is a Strategy node
+C1:
+  text: This is a Context node
+</textarea>
+    <br> <br>
+    <button onclick="render()">Render</button>
+    <h2>SVG Output</h2>
+    <div id="svg-output"></div>
+    <h2>Errors</h2>
+    <pre id="errors"></pre>
+
+    <script type="module">
+        import init, { process_gsn } from './pkg/gsn2x_lib.js';
+
+        await init();
+
+        window.render = function() {
+            const yaml = document.getElementById('yaml-input').value;
+            try {
+                const svg = process_gsn(yaml, 0);
+                document.getElementById('svg-output').innerHTML = svg;
+                document.getElementById('errors').textContent = '';
+            } catch(e) {
+                document.getElementById('errors').textContent = e;
+                document.getElementById('svg-output').innerHTML = '';
+            }
+        };
+
+        // Auto-render on load
+        window.render();
+    </script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+G1:
+  text: This is a Goal
+  supportedBy: [S1]
+  inContextOf: [C1]
+
+S1:
+  text: This is a Strategy
+
+C1:
+  text: This is a Context

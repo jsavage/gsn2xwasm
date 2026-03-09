@@ -26,6 +26,9 @@ use std::collections::{BTreeMap, btree_map::Entry};
 use std::fmt::Display;
 use std::error::Error;
 
+#[cfg(target_arch = "wasm32")]
+use console_error_panic_hook;
+
 pub const MODULE_INFORMATION_NODE: &str = "module";
 
 // ─── WASM public API ────────────────────────────────────────────────────────
@@ -51,6 +54,13 @@ pub fn make_unknown_node_for(node_name: &str) -> GsnNode {
     gsn_node.fix_node_type(node_name);
     gsn_node
 }
+
+#[cfg(feature = "wasm")]
+#[wasm_bindgen(start)]
+pub fn wasm_main() {
+    console_error_panic_hook::set_once();
+}
+
 
 fn process_gsn_internal(yaml_input: &str, char_wrap: Option<u32>) -> Result<String> {
     let mut diags = Diagnostics::default();
@@ -83,6 +93,20 @@ fn process_gsn_internal(yaml_input: &str, char_wrap: Option<u32>) -> Result<Stri
             .join("\n");
         anyhow!("{e}\n{msgs}")
     })?;
+
+    // After validate_and_check, before render — check all node_types are known   - Added by JS to improve error message utility
+    let unknown_nodes: Vec<&str> = nodes.iter()
+        .filter(|(_, n)| n.node_type.is_none())
+        .map(|(id, _)| id.as_str())
+        .collect();
+    if !unknown_nodes.is_empty() {
+        return Err(anyhow!(
+            "Unknown node type(s): {}. Node names must start with: \
+            G (Goal), S (Strategy), Sn (Solution), C (Context), \
+             A (Assumption), J (Justification), CG (CounterGoal), CSn (CounterSolution).",
+            unknown_nodes.join(", ")
+        ));
+    }
 
     // Build minimal RenderOptions — no clap, no filesystem paths
     let render_options = RenderOptions {
