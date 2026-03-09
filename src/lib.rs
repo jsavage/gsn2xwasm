@@ -20,13 +20,11 @@ pub mod yaml_fix;
 use anyhow::{Result, anyhow};
 use diagnostics::Diagnostics;
 use dirgraphsvg::escape_text;
-use gsn::{FindModuleByPath, GsnDocument, GsnNode, Module, ModuleInformation, Origin};
+use gsn::{GsnDocument, GsnNode, Module, ModuleInformation, Origin};
 use render::{RenderLegend, RenderOptions};
 use std::collections::{BTreeMap, btree_map::Entry};
 use std::fmt::Display;
 use std::error::Error;
-use std::io::Write;
-use std::path::PathBuf;
 
 pub const MODULE_INFORMATION_NODE: &str = "module";
 
