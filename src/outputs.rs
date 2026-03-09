@@ -14,7 +14,7 @@ use anyhow::Result;
 /// No template engine is used in order to keep dependencies to a minimum.
 ///
 ///
-pub(crate) fn render_evidence(
+pub fn render_evidence(
     output: &mut impl Write,
     nodes: &BTreeMap<String, GsnNode>,
     render_options: &RenderOptions,
@@ -82,7 +82,7 @@ pub(crate) fn render_evidence(
 /// Print statistics
 ///
 ///
-pub(crate) fn render_statistics(
+pub fn render_statistics(
     output: &mut impl Write,
     nodes: &BTreeMap<String, GsnNode>,
     modules: &BTreeMap<String, Module>,
@@ -166,7 +166,7 @@ pub(crate) fn render_statistics(
 ///
 /// Render dump of complete graph into single YAML file that is ordered according to rank.
 ///
-pub(crate) fn render_yaml_docs(
+pub fn render_yaml_docs(
     mut output: &mut impl Write,
     nodes: &BTreeMap<String, GsnNode>,
     modules: &BTreeMap<String, Module>,

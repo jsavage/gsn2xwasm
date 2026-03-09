@@ -12,6 +12,14 @@ documentation = "https://jonasthewolf.github.io/gsn2x"
 
 # See more keys and their definitions at https://   doc.rust-lang.org/cargo/reference/manifest.html
 
+[lib]
+name = "gsn2x_lib"
+crate-type = ["cdylib", "rlib"]
+
+[[bin]]
+name = "gsn2x"
+path = "src/main.rs"
+
 [dependencies]
 anyhow = "1.0" # Only std feature
 clap = { version = "4.5", default-features = false, features = [
@@ -26,6 +34,14 @@ serde = { version = "1.0", default-features = false, features = ["derive"] }
 serde_yaml_ng = "0.10" # No features
 svg = "0.18" # No features
 time = { version = "0.3", default-features = false, features = ["formatting"] }
+wasm-bindgen = { version = "0.2", optional = true }
+
+[features]
+default = []
+wasm = ["wasm-bindgen"]
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+# move filesystem-only deps here if needed later
 
 [dev-dependencies]
 assert_cmd = "2.1"

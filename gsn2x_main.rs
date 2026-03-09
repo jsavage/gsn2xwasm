@@ -1,4 +1,3 @@
-
 // src/main.rs
 //
 // Native CLI binary entry point.
@@ -143,217 +142,6 @@ fn main() -> Result<()> {
     }
 }
 
-
-fn build_command_options() -> Command {
-    clap::command!()
-        .arg(
-            Arg::new("INPUT")
-                .help("Sets the input file(s) to use.")
-                .action(ArgAction::Append)
-                .default_values(["index.gsn.yaml"]),
-        )
-        .arg(
-            Arg::new("CHECK_ONLY")
-                .help("Only check the input file(s), but do not output graphs.")
-                .short('c')
-                .long("check")
-                .action(ArgAction::SetTrue)
-                .help_heading("CHECKS"),
-        )
-        .arg(
-            Arg::new("EXCLUDED_MODULE")
-                .help("Exclude this module from reference checks.")
-                .short('x')
-                .long("exclude")
-                .action(ArgAction::Append)
-                .require_equals(true)
-                .help_heading("CHECKS"),
-        )
-        .arg(
-            Arg::new("WARN_DIALECTIC")
-                .help("Emit a warning if Dialectic Extension is used.")
-                .long("warn-dialectic")
-                .action(ArgAction::SetTrue)
-                .help_heading("CHECKS"),
-        )
-        .arg(
-            Arg::new("EXTENDED_CHECK")
-                .help("Perform additional checks.")
-                .long("extended-check")
-                .action(ArgAction::SetTrue)
-                .help_heading("CHECKS"),
-        )
-        .arg(
-            Arg::new("NO_ARGUMENT_VIEW")
-                .help("Do not output of argument view for provided input files.")
-                .short('N')
-                .long("no-arg")
-                .action(ArgAction::SetTrue)
-                .help_heading("OUTPUT"),
-        )
-        .arg(
-            Arg::new("COMPLETE_VIEW")
-                .help("Output the complete view to file with name <COMPLETE_VIEW>.")
-                .short('f')
-                .long("full")
-                .action(ArgAction::Set)
-                .require_equals(true)
-                .default_value("complete.svg")
-                .conflicts_with_all(["CHECK_ONLY", "NO_COMPLETE_VIEW"])
-                .help_heading("OUTPUT"),
-        )
-        .arg(
-            Arg::new("NO_COMPLETE_VIEW")
-                .help("Do not output the complete view.")
-                .short('F')
-                .long("no-full")
-                .action(ArgAction::SetTrue)
-                .conflicts_with("COMPLETE_VIEW")
-                .help_heading("OUTPUT"),
-        )
-        .arg(
-            Arg::new("ARCHITECTURE_VIEW")
-                .help("Output the architecture view to file with name <ARCHITECTURE_VIEW>.")
-                .short('a')
-                .long("arch")
-                .action(ArgAction::Set)
-                .require_equals(true)
-                .default_value("architecture.svg")
-                .conflicts_with_all(["CHECK_ONLY", "NO_ARCHITECTURE_VIEW"])
-                .help_heading("OUTPUT"),
-        )
-        .arg(
-            Arg::new("NO_ARCHITECTURE_VIEW")
-                .help("Do not output the architecture view.")
-                .short('A')
-                .long("no-arch")
-                .action(ArgAction::SetTrue)
-                .conflicts_with("ARCHITECTURE_VIEW")
-                .help_heading("OUTPUT"),
-        )
-        .arg(
-            Arg::new("EVIDENCE")
-                .help("Output list of all evidence to file with name <EVIDENCE>.")
-                .short('e')
-                .long("evidence")
-                .action(ArgAction::Set)
-                .require_equals(true)
-                .default_value("evidence.md")
-                .conflicts_with_all(["CHECK_ONLY", "NO_EVIDENCE"])
-                .help_heading("OUTPUT"),
-        )
-        .arg(
-            Arg::new("NO_EVIDENCE")
-                .help("Do not output list of all evidence.")
-                .short('E')
-                .long("no-evidence")
-                .action(ArgAction::SetTrue)
-                .conflicts_with("EVIDENCE")
-                .help_heading("OUTPUT"),
-        )
-        .arg(
-            Arg::new("OUTPUT_DIRECTORY")
-                .help("Emit all output files to directory <OUTPUT_DIRECTORY>.")
-                .short('o')
-                .long("output-dir")
-                .action(ArgAction::Set)
-                .require_equals(true)
-                .conflicts_with("CHECK_ONLY")
-                .default_value(".")
-                .help_heading("OUTPUT"),
-        )
-        .arg(
-            Arg::new("STATISTICS")
-                .help("Output statistics on inputs to <STATISTICS> file or standard output.")
-                .long("statistics")
-                .action(ArgAction::Set)
-                .require_equals(true)
-                .num_args(0..=1)
-                .help_heading("OUTPUT"),
-        )
-        .arg(
-            Arg::new("YAMLDUMP")
-                .help("Output parsed YAML files to single <YAMLDUMP> file or standard output.")
-                .long("dump-yaml")
-                .action(ArgAction::Set)
-                .require_equals(true)
-                .num_args(0..=1)
-                .help_heading("OUTPUT"),
-        )
-        .arg(
-            Arg::new("LAYERS")
-                .help("Output additional layer. Can be used multiple times.")
-                .short('l')
-                .long("layer")
-                .action(ArgAction::Append)
-                .use_value_delimiter(true)
-                .require_equals(true)
-                .conflicts_with("CHECK_ONLY")
-                .help_heading("OUTPUT MODIFICATION"),
-        )
-        .arg(
-            Arg::new("STYLESHEETS")
-                .help("Links a stylesheet in SVG output. Can be used multiple times.")
-                .short('s')
-                .long("stylesheet")
-                .action(ArgAction::Append)
-                .require_equals(true)
-                .conflicts_with("CHECK_ONLY")
-                .help_heading("OUTPUT MODIFICATION"),
-        )
-        .arg(
-            Arg::new("EMBED_CSS")
-                .help("Embed stylesheets instead of linking them.")
-                .short('t')
-                .long("embed-css")
-                .action(ArgAction::SetTrue)
-                .conflicts_with("CHECK_ONLY")
-                .help_heading("OUTPUT MODIFICATION"),
-        )
-        .arg(
-            Arg::new("MASKED_MODULE")
-                .help("Do not show this module in views.")
-                .short('m')
-                .long("mask")
-                .action(ArgAction::Append)
-                .require_equals(true)
-                .conflicts_with("CHECK_ONLY")
-                .help_heading("OUTPUT MODIFICATION"),
-        )
-        .arg(
-            Arg::new("NO_LEGEND")
-                .help("Do not output a legend based on module information.")
-                .short('G')
-                .long("no-legend")
-                .action(ArgAction::SetTrue)
-                .conflicts_with("CHECK_ONLY")
-                .help_heading("OUTPUT MODIFICATION"),
-        )
-        .arg(
-            Arg::new("FULL_LEGEND")
-                .help("Output a legend based on all module information.")
-                .short('g')
-                .long("full-legend")
-                .action(ArgAction::SetTrue)
-                .conflicts_with("CHECK_ONLY")
-                .help_heading("OUTPUT MODIFICATION"),
-        )
-        .arg(
-            Arg::new("CHAR_WRAP")
-                .help("Define the number of characters after which a line of text is wrapped.")
-                .short('w')
-                .long("wrap")
-                .action(ArgAction::Set)
-                .require_equals(true)
-                .value_parser(value_parser!(u32))
-                .conflicts_with("CHECK_ONLY")
-                .help_heading("OUTPUT MODIFICATION"),
-            // Intentionally no default value, to allow formatting via YAML.
-        )
-}
-
-
-
 fn add_missing_nodes_and_modules(
     nodes: &mut BTreeMap<String, GsnNode>,
     modules: &mut BTreeMap<String, Module>,
@@ -361,31 +149,24 @@ fn add_missing_nodes_and_modules(
 ) {
     let mut add_nodes = vec![];
     for (_, node) in nodes.iter() {
-        let ref_nodes: Vec<String> = node
+        let ref_nodes: Vec<_> = node
             .supported_by
             .iter()
             .chain(node.in_context_of.iter())
-            .cloned()
             .collect();
         for ref_node in ref_nodes {
-            if !nodes.contains_key(ref_node.as_str()) {
-                add_nodes.push(ref_node.to_string());
+            if !nodes.contains_key(ref_node) {
+                add_nodes.push(ref_node.to_owned());
             }
         }
     }
     for node in add_nodes {
-
-
-        let gsn_node = gsn2x_lib::make_unknown_node_for(&node);
-        nodes.insert(node.clone(), gsn_node);
-
-//        let mut gsn_node = GsnNode {
-//            module: "Unknown".to_owned(),
-//            ..Default::default()
-//        };
-//        gsn_node.fix_node_type(&node);
-//        nodes.insert(node.clone(), gsn_node);
-
+        let mut gsn_node = GsnNode {
+            module: "Unknown".to_owned(),
+            ..Default::default()
+        };
+        gsn_node.fix_node_type(&node);
+        nodes.insert(node.to_owned(), gsn_node);
         render_options.masked_elements.push(node);
     }
     let _ = modules.insert(

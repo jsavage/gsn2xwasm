@@ -140,7 +140,14 @@ pub fn is_url(input: &str) -> bool {
 /// Create file and all necessary parent directories.
 ///
 ///
+
 pub fn create_file_incl_parent(path: &Path) -> Result<Box<dyn Write>> {
+    #[cfg(target_arch = "wasm32")]
+    { return Ok(Box::new(Vec::<u8>::new())); }
+    
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        // existing code unchanged
     if !&path.parent().unwrap().exists() {
         // Create output directory; unwraps are ok, since file always have a parent
         std::fs::create_dir_all(path.parent().unwrap())
@@ -150,6 +157,7 @@ pub fn create_file_incl_parent(path: &Path) -> Result<Box<dyn Write>> {
         File::create(path).context(format!("Failed to open output file {}", path.display()))?,
     ) as Box<dyn std::io::Write>;
     Ok(output_file)
+    }
 }
 
 #[cfg(test)]

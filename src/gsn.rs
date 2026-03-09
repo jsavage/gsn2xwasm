@@ -107,13 +107,13 @@ pub struct GsnNode {
         deserialize_with = "deser_string_or_seq_string",
         skip_serializing_if = "Vec::is_empty"
     )]
-    pub(crate) in_context_of: Vec<String>,
+    pub in_context_of: Vec<String>,
     #[serde(
         default,
         deserialize_with = "deser_string_or_seq_string",
         skip_serializing_if = "Vec::is_empty"
     )]
-    pub(crate) supported_by: Vec<String>,
+    pub supported_by: Vec<String>,
     #[serde(
         default,
         deserialize_with = "deser_challenges",
@@ -142,7 +142,7 @@ pub struct GsnNode {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) node_type: Option<GsnNodeType>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) char_wrap: Option<u32>,
+    pub char_wrap: Option<u32>,
     #[serde(
         default,
         deserialize_with = "deser_acp",
@@ -156,7 +156,7 @@ pub struct GsnNode {
     )]
     pub(crate) additional: BTreeMap<String, String>,
     #[serde(skip_deserializing, skip_serializing)]
-    pub(crate) module: String,
+    pub module: String,
 }
 
 ///
@@ -431,7 +431,7 @@ fn get_node_type_from_text(text: &str) -> Option<GsnNodeType> {
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ModuleInformation {
-    pub(crate) name: String,
+    pub name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) brief: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -441,11 +441,11 @@ pub struct ModuleInformation {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) rank_increment: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub(crate) char_wrap: Option<u32>,
+    pub char_wrap: Option<u32>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub(crate) stylesheets: Vec<String>,
+    pub stylesheets: Vec<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub(crate) uses: Vec<String>,
+    pub uses: Vec<String>,
     #[serde(
         flatten,
         deserialize_with = "deser_additional",
