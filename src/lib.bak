@@ -86,8 +86,6 @@ pub fn process_gsn_multi(
 //
 // ─── REPLACEMENT for process_gsn_multi_internal in src/lib.rs ─────────────────
 
-// ─── This edit changes the core behaviour of gsn2x to clean up the SVG for Top level modules - see  src/lib.rs.bak to reverse this change ─────────────────
-
 fn process_gsn_multi_internal(
     filenames: Vec<String>,
     yaml_inputs: Vec<String>,
@@ -112,15 +110,7 @@ fn process_gsn_multi_internal(
         parse_yaml_str(yaml, filename, &mut nodes, &mut modules, &mut diags)?;
     }
 
-    // Snapshot nodes BEFORE validation.
-    // validate_and_check patches foreign nodes' supported_by in place
-    // (src/gsn.rs ~562: foreign_node.supported_by = local_ids.to_vec())
-    // when processing `develops` relationships. Top-level modules should
-    // render using the pre-patch state so that developed goals show as
-    // undeveloped stubs rather than showing sub-module internals.
-    let nodes_pre_validation = nodes.clone();
-
-    // Phase 2 — cross-module validation (mutates nodes in place)
+    // Phase 2 — cross-module validation
     validate_and_check(
         &mut nodes, &modules, &mut diags,
         &[], &[], false, false,
@@ -132,7 +122,7 @@ fn process_gsn_multi_internal(
         anyhow!("{e}\n{msgs}")
     })?;
 
-    // Pre-render unknown node type check (use patched nodes)
+    // Pre-render unknown node type check
     let unknown_nodes: Vec<&str> = nodes.iter()
         .filter(|(_, n)| n.node_type.is_none())
         .map(|(id, _)| id.as_str())
@@ -146,17 +136,15 @@ fn process_gsn_multi_internal(
         ));
     }
 
-    // Phase 2b — add missing node stubs so render_argument never panics.
-    // Do this on BOTH maps so edge targets always resolve.
-    for nodes_map in [&mut nodes, &mut nodes_pre_validation.clone()] {
-        let _ = nodes_map; // we handle both below
-    }
-
-    let add_missing_stubs = |nodes_map: &mut BTreeMap<String, GsnNode>| {
+    // Phase 2b — replicate add_missing_nodes_and_modules from main.rs.
+    // render_argument requires every edge target to exist in nodes, and
+    // every node.module to exist in modules. Insert typed stubs for any
+    // referenced node not present, and add the "Unknown" sentinel module.
+    {
         let mut missing: Vec<String> = Vec::new();
-        for node in nodes_map.values() {
+        for node in nodes.values() {
             for ref_id in node.supported_by.iter().chain(node.in_context_of.iter()) {
-                if !nodes_map.contains_key(ref_id) {
+                if !nodes.contains_key(ref_id) {
                     missing.push(ref_id.clone());
                 }
             }
@@ -169,32 +157,21 @@ fn process_gsn_multi_internal(
                 ..Default::default()
             };
             stub.fix_node_type(&ref_id);
-            nodes_map.insert(ref_id, stub);
+            nodes.insert(ref_id, stub);
         }
-    };
-
-    let mut nodes_pre = nodes_pre_validation;
-    add_missing_stubs(&mut nodes);
-    add_missing_stubs(&mut nodes_pre);
-
-    // Ensure "Unknown" sentinel module exists in both render paths
-    modules.entry("Unknown".to_owned()).or_insert_with(|| Module {
-        orig_file_name: "".to_owned(),
-        meta: ModuleInformation::new("Unknown".to_owned()),
-        origin: Origin::Excluded,
-        canonical_path: None,
-        output_path: None,
-    });
+        modules.entry("Unknown".to_owned()).or_insert_with(|| Module {
+            orig_file_name: "".to_owned(),
+            meta: ModuleInformation::new("Unknown".to_owned()),
+            origin: Origin::Excluded,
+            canonical_path: None,
+            output_path: None,
+        });
+    }
 
     // Phase 3 — render each module using render_argument.
-    //
-    // Top-level modules (meta.extends is empty) use nodes_pre — the
-    // pre-validation snapshot where developed goals still show as undeveloped.
-    // This means G6 in the top-level view shows as an undeveloped away stub,
-    // not cluttered with the sub-module's S6 internals.
-    //
-    // Sub-modules (meta.extends is non-empty) use the patched nodes map so
-    // their full development tree is visible.
+    // render_argument correctly maps foreign nodes to away stubs, filters
+    // edges to only those touching this module, and prunes unreachable nodes.
+    // With the output_path fix in render.rs it is safe in WASM.
 
     let render_options = RenderOptions {
         stylesheets: vec![],
@@ -212,20 +189,13 @@ fn process_gsn_multi_internal(
 
     let mut results: Vec<String> = Vec::new();
 
-    for (module_name, module_info) in modules.iter().filter(|(m, _)| *m != "Unknown") {
-        // Choose which node map to render from
-        let render_nodes = if module_info.meta.extends.is_empty() {
-            &nodes_pre   // top-level: pre-validation, developed goals still undeveloped
-        } else {
-            &nodes       // sub-module: post-validation, full development visible
-        };
-
+    for (module_name, _module) in modules.iter().filter(|(m, _)| *m != "Unknown") {
         let mut output: Vec<u8> = Vec::new();
         render::render_argument(
             &mut output,
             module_name,
             &modules,
-            render_nodes,
+            &nodes,
             &render_options,
         )?;
 
@@ -247,7 +217,6 @@ fn process_gsn_multi_internal(
 
     Ok(format!("[{}]", results.join(",")))
 }
-// ─── END REPLACEMENT ───────────────────────────────────────────────────────────
 // ─── END REPLACEMENT ───────────────────────────────────────────────────────────
 // ─── END REPLACEMENT ───────────────────────────────────────────────────────────
 // ─── END REPLACEMENT ───────────────────────────────────────────────────────────

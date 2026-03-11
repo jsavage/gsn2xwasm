@@ -1,0 +1,89 @@
+# =============================================================================
+# Structural Integrity Sub-Module
+# =============================================================================
+
+module:
+  name: StructuralIntegrity
+  brief: |
+    Safety argument for the structural adequacy of the buoy
+    and its mooring system.
+  extends:
+    - module: TopLevel
+      develops:
+        G2: [S2]
+
+# =============================================================================
+# STRATEGY
+# =============================================================================
+S2:
+  text: |
+    Argue that design, construction, and
+    mooring system comply with recognised
+    standards and are suitable for the
+    site-specific environmental conditions.
+  supportedBy: [G2_1, G2_2, G2_3]
+  inContextOf: [C5]
+
+C5:
+  text: |
+    The deployment location is approximately
+    1 mile offshore, exposed to open sea
+    conditions including wave, wind, tidal,
+    and current loads.
+
+# =============================================================================
+# SUB-GOALS
+# =============================================================================
+G2_1:
+  text: |
+    The buoy has been designed and constructed
+    in accordance with recognised standards
+    for marine buoys.
+  supportedBy: [Sn1]
+
+G2_2:
+  text: |
+    The mooring system is adequate for the
+    site-specific environmental conditions
+    and seabed type.
+  supportedBy: [Sn2, Sn3]
+
+G2_3:
+  text: |
+    The buoy and mooring system will maintain
+    integrity for the planned deployment
+    duration under expected conditions.
+  supportedBy: [Sn4]
+  inContextOf: [A2]
+
+A2:
+  text: |
+    Environmental conditions during deployment
+    will not exceed design parameters. Extreme
+    weather contingency plan is in place.
+
+# =============================================================================
+# SOLUTIONS
+# =============================================================================
+Sn1:
+  text: |
+    Buoy design and construction compliance
+    certificate or statement of conformity
+    with applicable standards.
+
+Sn2:
+  text: |
+    Mooring design calculations considering
+    site-specific metocean and seabed data.
+
+Sn3:
+  text: |
+    Mooring component certificates and
+    proof load test records.
+
+Sn4:
+  text: |
+    Design life assessment demonstrating
+    adequacy for planned deployment duration
+    including fatigue and corrosion
+    considerations.

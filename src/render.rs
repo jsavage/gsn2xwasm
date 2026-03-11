@@ -157,17 +157,26 @@ pub fn away_svg_from_gsn_node(
     layers: &[String],
     char_wrap: Option<u32>,
 ) -> Result<SvgNode> {
+////
+
     let module_url = if masked {
         None
-    } else {
-        let mut x = get_relative_path(
-            module.output_path.as_ref().unwrap(), // unwrap ok, since output_path is set initially.
-            source_module.output_path.as_ref().unwrap(), // unwrap ok, since output_path is set initially.
-        );
+    } else if let (Some(mod_path), Some(src_path)) = (
+        module.output_path.as_ref(),
+        source_module.output_path.as_ref(),
+    ) {
+        let mut x = get_relative_path(mod_path, src_path);
         x.push('#');
         x.push_str(&escape_node_id(identifier));
         Some(x)
+    } else {
+        // output_path is None — running in WASM with no filesystem.
+        // Away nodes render without a hyperlink URL.
+        None
     };
+
+
+
     // Create node
     Ok(match gsn_node.node_type.unwrap() {
         // unwrap ok, since checked during validation

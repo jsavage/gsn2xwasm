@@ -1,0 +1,109 @@
+# =============================================================================
+# Top-Level Safety Case Module for Temporary Environmental Research Buoy
+# =============================================================================
+
+module:
+  name: TopLevel
+  brief: |
+    Top-level safety argument for the temporary installation, operation,
+    and recovery of an offshore environmental research data acquisition buoy.
+
+# =============================================================================
+# TOP-LEVEL GOAL
+# =============================================================================
+G1:
+  text: |
+    The temporary environmental research buoy can be safely
+    installed, operated, and recovered without
+    posing unacceptable risk to people, vessels,
+    or the marine environment.
+  supportedBy: [S1]
+  inContextOf: [C1, C2, C3, A1]
+
+C1:
+  text: |
+    The buoy is to be temporarily installed
+    approximately 1 mile offshore, to one side
+    of a harbour, for the duration of a
+    research project.
+
+C2:
+  text: |
+    The purpose of the buoy is to gather data
+    from the marine environment using sensors
+    and a data acquisition system.
+
+C3:
+  text: |
+    The location for the buoy has been agreed
+    by all relevant parties including harbour
+    authority and navigation stakeholders.
+
+A1:
+  text: |
+    The buoy will be removed at the end of the
+    research project and the installation is
+    temporary in nature.
+
+# =============================================================================
+# TOP-LEVEL STRATEGY
+# =============================================================================
+S1:
+  text: |
+    Argument by decomposition over key safety
+    aspects: structural integrity, navigational
+    safety, installation and recovery safety,
+    operational safety, and environmental
+    protection.
+  supportedBy: [G2, G3, G4, G5, G6]
+  inContextOf: [C4, J1]
+
+C4:
+  text: |
+    Hazard identification has been performed
+    considering all lifecycle phases:
+    installation, operation, and recovery.
+
+J1:
+  text: |
+    Decomposition into these five safety
+    aspects provides complete coverage of
+    identified hazard categories for a
+    temporary offshore buoy installation.
+
+# =============================================================================
+# UNDEVELOPED SUB-GOALS (developed in sub-modules)
+# =============================================================================
+G2:
+  text: |
+    The buoy is structurally adequate for the
+    intended deployment location and duration.
+  undeveloped: true
+
+G3:
+  text: |
+    The buoy does not pose an unacceptable
+    risk to navigation for vessels operating
+    in the vicinity of the harbour.
+  undeveloped: true
+
+G4:
+  text: |
+    The buoy can be safely installed and
+    recovered without unacceptable risk to
+    personnel or third parties.
+  undeveloped: true
+
+G5:
+  text: |
+    The buoy can operate safely throughout
+    the deployment period without posing
+    unacceptable risk.
+  undeveloped: true
+
+G6:
+  text: |
+    The buoy installation does not cause
+    unacceptable harm to the marine
+    environment.
+  undeveloped: true

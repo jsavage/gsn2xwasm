@@ -1,0 +1,96 @@
+# =============================================================================
+# Navigational Safety Sub-Module
+# =============================================================================
+
+module:
+  name: NavigationalSafety
+  brief: |
+    Safety argument that the buoy does not pose an unacceptable
+    risk to navigation.
+  extends:
+    - module: TopLevel
+      develops:
+        G3: [S3]
+
+# =============================================================================
+# STRATEGY
+# =============================================================================
+S3:
+  text: |
+    Argue that mariners are adequately warned,
+    the buoy is properly marked, and the
+    location does not obstruct navigation
+    channels.
+  supportedBy: [G3_1, G3_2, G3_3]
+  inContextOf: [C6, A3]
+
+C6:
+  text: |
+    The buoy is located to one side of a
+    harbour in an area used by commercial
+    and recreational vessels.
+
+A3:
+  text: |
+    Mariners are expected to observe Notices
+    to Mariners and maintain a proper lookout
+    in accordance with COLREGS.
+
+# =============================================================================
+# SUB-GOALS
+# =============================================================================
+G3_1:
+  text: |
+    All water users have been notified of the
+    buoy installation through appropriate
+    channels.
+  supportedBy: [Sn5, Sn6]
+
+G3_2:
+  text: |
+    The buoy is fitted with appropriate
+    marks and lights in accordance with
+    IALA guidelines for the marking of
+    offshore structures.
+  supportedBy: [Sn7]
+
+G3_3:
+  text: |
+    The agreed buoy location does not
+    obstruct recognised navigation channels,
+    anchorages, or traffic separation schemes.
+  supportedBy: [Sn8]
+
+# =============================================================================
+# SOLUTIONS
+# =============================================================================
+Sn5:
+  text: |
+    Notice to Mariners issued by the relevant
+    authority detailing buoy location, period
+    of installation, and characteristics.
+  url: https://example.com/evidence/sn5-notice-to-mariners.pdf
+
+Sn6:
+  text: |
+    Evidence of notification to harbour
+    authority, local fishing and sailing
+    organisations, and other stakeholders.
+  url: https://example.com/evidence/sn6-stakeholder-notifications.pdf
+
+Sn7:
+  text: |
+    Buoy marking and lighting specification
+    demonstrating compliance with IALA
+    recommendations and any requirements
+    imposed by the General Lighthouse
+    Authority.
+  url: https://example.com/evidence/sn7-marking-lighting-spec.pdf
+
+Sn8:
+  text: |
+    Location risk assessment including chart
+    review and confirmation of agreement from
+    harbour authority and relevant navigation
+    stakeholders.
+  url: https://example.com/evidence/sn8-location-risk-assessment.pdf

@@ -1,0 +1,80 @@
+# =============================================================================
+# Installation and Recovery Safety Sub-Module
+# =============================================================================
+
+module:
+  name: InstallationRecovery
+  brief: |
+    Safety argument for the safe installation and recovery
+    of the buoy.
+  extends:
+    - module: TopLevel
+      develops:
+        G4: [S4]
+
+# =============================================================================
+# STRATEGY
+# =============================================================================
+S4:
+  text: |
+    Argue that competent contractors will
+    execute installation and recovery using
+    safe methods and procedures.
+  supportedBy: [G4_1, G4_2, G4_3]
+
+# =============================================================================
+# SUB-GOALS
+# =============================================================================
+G4_1:
+  text: |
+    Installation and recovery will be
+    undertaken by experienced and competent
+    marine contractors.
+  supportedBy: [Sn9, Sn10]
+
+G4_2:
+  text: |
+    Vessels used for installation and recovery
+    are suitable and certified for the task.
+  supportedBy: [Sn11]
+
+G4_3:
+  text: |
+    Weather and sea state constraints for
+    safe installation and recovery operations
+    have been defined and will be observed.
+  supportedBy: [Sn12]
+  inContextOf: [A4]
+
+A4:
+  text: |
+    Operations will be postponed if forecast
+    conditions exceed defined operational
+    weather limits.
+
+# =============================================================================
+# SOLUTIONS
+# =============================================================================
+Sn9:
+  text: |
+    Marine contractor credentials, relevant
+    experience records, and evidence of
+    competence for this type of operation.
+
+Sn10:
+  text: |
+    Contractor risk assessments and method
+    statements for installation and recovery
+    operations.
+
+Sn11:
+  text: |
+    Vessel certificates and evidence of
+    suitability for lifting, towing, and
+    deployment operations at the site.
+
+Sn12:
+  text: |
+    Defined operational weather limits for
+    installation and recovery included in
+    method statements.

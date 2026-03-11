@@ -1,0 +1,77 @@
+# =============================================================================
+# Operational Safety Sub-Module
+# =============================================================================
+
+module:
+  name: OperationalSafety
+  brief: |
+    Safety argument for the safe operation of the buoy
+    throughout the deployment period.
+  extends:
+    - module: TopLevel
+      develops:
+        G5: [S5]
+
+# =============================================================================
+# STRATEGY
+# =============================================================================
+S5:
+  text: |
+    Argue that monitoring, maintenance, and
+    contingency arrangements are in place for
+    the operational period.
+  supportedBy: [G5_1, G5_2, G5_3]
+
+# =============================================================================
+# SUB-GOALS
+# =============================================================================
+G5_1:
+  text: |
+    The buoy will be monitored and inspected
+    at appropriate intervals throughout the
+    deployment period.
+  supportedBy: [Sn13]
+
+G5_2:
+  text: |
+    Contingency plans are in place to address
+    buoy breakaway, mooring failure, damage,
+    or loss of marking and lighting.
+  supportedBy: [Sn14]
+
+G5_3:
+  text: |
+    The sensors and data acquisition system
+    do not introduce hazards (e.g. electrical,
+    battery, or hazardous material risks).
+  supportedBy: [Sn15]
+  inContextOf: [C7]
+
+C7:
+  text: |
+    The buoy contains electronic sensors,
+    data acquisition equipment, and an
+    associated power supply (e.g. batteries,
+    solar panels).
+
+# =============================================================================
+# SOLUTIONS
+# =============================================================================
+Sn13:
+  text: |
+    Monitoring and inspection plan defining
+    inspection intervals, methods, and
+    responsible parties.
+
+Sn14:
+  text: |
+    Contingency and emergency response plan
+    covering breakaway, collision damage,
+    lighting failure, and emergency recovery.
+
+Sn15:
+  text: |
+    Equipment safety assessment addressing
+    electrical safety, battery containment,
+    and any hazardous materials within the
+    data acquisition system.

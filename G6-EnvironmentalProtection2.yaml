@@ -1,0 +1,62 @@
+# =============================================================================
+# Environmental Protection Sub-Module
+# =============================================================================
+
+module:
+  name: EnvironmentalProtection
+  brief: |
+    Safety argument that the buoy installation does not cause
+    unacceptable harm to the marine environment.
+  extends:
+    - module: TopLevel
+      develops:
+        G6: [S6]
+
+# =============================================================================
+# STRATEGY
+# =============================================================================
+S6:
+  text: |
+    Argue that environmental impacts have been
+    assessed and are acceptable, and that
+    pollution prevention measures are in place.
+  supportedBy: [G6_1, G6_2]
+  inContextOf: [C8]
+
+C8:
+  text: |
+    The deployment site may include sensitive
+    habitats, protected species, or designated
+    conservation areas.
+
+# =============================================================================
+# SUB-GOALS
+# =============================================================================
+G6_1:
+  text: |
+    An environmental assessment has been
+    performed and impacts are acceptable.
+  supportedBy: [Sn16]
+
+G6_2:
+  text: |
+    Measures are in place to prevent pollution
+    from the buoy, its mooring system, and
+    associated equipment.
+  supportedBy: [Sn17]
+
+# =============================================================================
+# SOLUTIONS
+# =============================================================================
+Sn16:
+  text: |
+    Environmental impact screening or
+    assessment report for the buoy
+    installation site.
+
+Sn17:
+  text: |
+    Pollution prevention measures documented,
+    including battery containment, use of
+    non-toxic antifouling, and material
+    selection for the marine environment.

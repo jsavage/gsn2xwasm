@@ -1,0 +1,2075 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>gsn2xwasm</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #f5f6f8;
+  --white:     #ffffff;
+  --border:    #d8dce6;
+  --border2:   #e8eaf0;
+  --accent:    #2563eb;
+  --accent-h:  #1d4ed8;
+  --accent2:   #7c3aed;
+  --warn:      #d97706;
+  --success:   #059669;
+  --error:     #dc2626;
+  --text:      #111827;
+  --text-mid:  #374151;
+  --text-dim:  #6b7280;
+  --mono:      'JetBrains Mono', monospace;
+  --sans:      'Inter', sans-serif;
+  --radius:    6px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.10), 0 1px 2px rgba(0,0,0,0.06);
+  --shadow:    0 4px 16px rgba(0,0,0,0.12);
+}
+
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 13px; }
+
+/* ── App shell ─────────────────────────────────────────────────── */
+.app {
+  display: grid;
+  grid-template-rows: 44px 1fr;
+  grid-template-columns: 320px 1fr;
+  grid-template-areas:
+    "toolbar toolbar"
+    "editor  preview";
+  height: 100vh;
+}
+
+/* ── Toolbar ───────────────────────────────────────────────────── */
+.toolbar {
+  grid-area: toolbar;
+  background: var(--white);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 12px;
+  box-shadow: var(--shadow-sm);
+  z-index: 20;
+}
+
+.logo {
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+  margin-right: 8px;
+  white-space: nowrap;
+}
+.logo em { color: var(--accent); font-style: normal; }
+
+.sep {
+  width: 1px;
+  height: 22px;
+  background: var(--border);
+  margin: 0 4px;
+}
+
+.spacer { flex: 1; }
+
+/* Toolbar buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--white);
+  color: var(--text-mid);
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.12s;
+  white-space: nowrap;
+  line-height: 1;
+}
+.btn:hover { background: var(--bg); border-color: #b0b8cc; color: var(--text); }
+.btn:active { transform: scale(0.97); }
+.btn svg { flex-shrink: 0; }
+
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.btn-primary:hover { background: var(--accent-h); border-color: var(--accent-h); color: #fff; }
+
+.btn-advanced {
+  border-color: #c4b5fd;
+  color: var(--accent2);
+}
+.btn-advanced:hover { background: #f5f3ff; border-color: var(--accent2); color: var(--accent2); }
+
+.opts-badge {
+  display: none;
+  background: var(--accent2);
+  color: #fff;
+  border-radius: 8px;
+  font-size: 9px;
+  padding: 1px 4px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+.opts-badge.on { display: inline; }
+
+.status {
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  transition: all 0.25s;
+}
+.status.idle    { color: var(--text-dim);  border-color: var(--border2); }
+.status.ok      { color: var(--success);   border-color: #a7f3d0; background: #f0fdf4; }
+.status.err     { color: var(--error);     border-color: #fecaca; background: #fef2f2; }
+.status.loading { color: var(--accent);    border-color: #bfdbfe; background: #eff6ff; }
+
+/* ── Editor panel ──────────────────────────────────────────────── */
+.editor-panel {
+  grid-area: editor;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border);
+  background: var(--white);
+  overflow: hidden;
+}
+
+.panel-label {
+  padding: 6px 12px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  background: var(--bg);
+  border-bottom: 1px solid var(--border2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+textarea {
+  flex: 1;
+  resize: none;
+  background: var(--white);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.75;
+  padding: 14px;
+  border: none;
+  outline: none;
+  tab-size: 2;
+}
+
+/* Active options bar */
+.active-bar {
+  display: none;
+  padding: 5px 12px;
+  background: #faf5ff;
+  border-bottom: 1px solid #e9d5ff;
+  font-size: 10px;
+  color: var(--accent2);
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+.active-bar.on { display: flex; }
+.opt-chip {
+  background: #ede9fe;
+  border: 1px solid #c4b5fd;
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-family: var(--mono);
+  font-size: 10px;
+}
+.opt-chip.pending { opacity: 0.55; }
+
+/* ── Module tabs (preview area) ────────────────────────────────── */
+.tab-bar {
+  display: flex;
+  align-items: stretch;
+  background: var(--white);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  flex-shrink: 0;
+  scrollbar-width: thin;
+}
+.tab-bar:empty { display: none; }
+
+.tab {
+  display: flex; align-items: center; gap: 6px;
+  padding: 0 14px;
+  height: 36px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-dim);
+  border-right: 1px solid var(--border2);
+  cursor: pointer;
+  white-space: nowrap;
+  position: relative;
+  transition: color 0.12s, background 0.12s;
+  user-select: none;
+  flex-shrink: 0;
+}
+.tab:hover { background: var(--bg); color: var(--text); }
+.tab.active {
+  color: var(--accent);
+  background: var(--white);
+  font-weight: 600;
+}
+.tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px; left: 0; right: 0; height: 2px;
+  background: var(--accent);
+}
+.tab.dirty { font-style: italic; }
+.tab-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--warn); flex-shrink: 0;
+  display: none;
+}
+.tab.dirty .tab-dot { display: block; }
+
+/* Editor module tabs (above the textarea) */
+.editor-tabs {
+  display: flex;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border2);
+  overflow-x: auto;
+  flex-shrink: 0;
+  scrollbar-width: thin;
+}
+.editor-tab {
+  display: flex; align-items: center; gap: 5px;
+  padding: 5px 12px;
+  font-size: 11px; font-weight: 500;
+  color: var(--text-dim);
+  cursor: pointer;
+  border-right: 1px solid var(--border2);
+  white-space: nowrap;
+  transition: all 0.1s;
+  position: relative;
+}
+.editor-tab:hover { background: var(--white); color: var(--text); }
+.editor-tab.active {
+  background: var(--white);
+  color: var(--accent);
+  font-weight: 600;
+}
+.editor-tab-x {
+  font-size: 13px; color: var(--text-dim); line-height: 1;
+  padding: 0 2px; border-radius: 3px;
+  transition: all 0.1s;
+}
+.editor-tab-x:hover { background: #fee2e2; color: var(--error); }
+
+/* Multi-module render button in editor panel label */
+.render-all-btn {
+  font-size: 10px; padding: 2px 8px;
+}
+
+/* ── Module manager modal ───────────────────────────────────────── */
+.modules-modal {
+  background: var(--white); border: 1px solid var(--border);
+  border-radius: 10px; box-shadow: var(--shadow);
+  width: 500px; max-width: 95vw; max-height: 88vh;
+  display: flex; flex-direction: column;
+  animation: min 0.18s ease;
+}
+.modules-list {
+  flex: 1; overflow-y: auto; padding: 8px 0;
+}
+.module-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border2);
+  font-size: 12px;
+}
+.module-row:last-child { border-bottom: none; }
+.module-row-icon {
+  width: 28px; height: 28px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; font-size: 11px; font-weight: 700;
+}
+.module-row-icon.top  { background: #dbeafe; color: var(--accent); }
+.module-row-icon.sub  { background: #f3e8ff; color: var(--accent2); }
+.module-row-info { flex: 1; min-width: 0; }
+.module-row-name {
+  font-weight: 600; color: var(--text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.module-row-file { font-size: 10px; color: var(--text-dim); font-family: var(--mono); }
+.module-row-del {
+  background: none; border: none; color: var(--text-dim);
+  cursor: pointer; padding: 3px 6px; border-radius: 4px;
+  font-size: 14px; line-height: 1; transition: all 0.1s;
+}
+.module-row-del:hover { background: #fee2e2; color: var(--error); }
+.modules-empty {
+  padding: 24px 16px; text-align: center;
+  color: var(--text-dim); font-size: 12px;
+}
+
+/* ── Preview panel ─────────────────────────────────────────────── */
+.preview-panel {
+  grid-area: preview;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.preview-toolbar {
+  padding: 5px 10px;
+  background: var(--white);
+  border-bottom: 1px solid var(--border2);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.zoom-label {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  min-width: 44px;
+  text-align: center;
+}
+
+/* SVG viewport — pan + zoom container */
+.svg-viewport {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  cursor: grab;
+  background:
+    linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px);
+  background-size: 20px 20px;
+  background-color: #f0f2f7;
+}
+.svg-viewport.panning { cursor: grabbing; }
+
+.svg-canvas {
+  position: absolute;
+  top: 0; left: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+
+.svg-canvas svg {
+  display: block;
+  max-width: none;
+  background: var(--white);
+  box-shadow: var(--shadow);
+}
+
+.error-box {
+  position: absolute;
+  top: 20px; left: 20px; right: 20px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  color: var(--error);
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  box-shadow: var(--shadow-sm);
+}
+
+.empty-hint {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+  gap: 8px;
+  pointer-events: none;
+  font-size: 12px;
+}
+
+/* ── Modal ─────────────────────────────────────────────────────── */
+.modal-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  z-index: 100;
+  align-items: center;
+  justify-content: center;
+}
+.modal-backdrop.open { display: flex; }
+
+.modal {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow), 0 0 0 1px rgba(37,99,235,0.05);
+  width: 540px;
+  max-width: 95vw;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  animation: min 0.18s ease;
+}
+@keyframes min {
+  from { opacity:0; transform: translateY(-8px) scale(0.99); }
+  to   { opacity:1; transform: none; }
+}
+
+.modal-header {
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid var(--border2);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.modal-title { font-weight: 600; font-size: 15px; flex: 1; }
+.modal-close {
+  background: none; border: none; color: var(--text-dim);
+  cursor: pointer; font-size: 16px; padding: 2px 6px;
+  border-radius: 4px; line-height: 1; transition: all 0.12s;
+}
+.modal-close:hover { background: var(--bg); color: var(--text); }
+
+.modal-body { overflow-y: auto; flex: 1; }
+
+.opt-group {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border2);
+}
+.opt-group:last-child { border-bottom: none; }
+
+.opt-group-title {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.impl-tag {
+  font-size: 9px; padding: 1px 5px; border-radius: 3px;
+  font-weight: 600; letter-spacing: 0; text-transform: none;
+}
+.impl-tag.live    { background: #d1fae5; color: var(--success); }
+.impl-tag.pending { background: #fef3c7; color: var(--warn); }
+
+/* Checkbox rows */
+.opt-row {
+  display: flex; align-items: flex-start; gap: 9px;
+  padding: 5px 0; cursor: pointer;
+}
+.opt-row:hover .opt-label-text { color: var(--text); }
+
+.opt-row input[type="checkbox"] {
+  appearance: none; width: 15px; height: 15px;
+  border: 1.5px solid var(--border); border-radius: 3px;
+  background: var(--white); cursor: pointer; flex-shrink: 0;
+  margin-top: 2px; transition: all 0.12s; position: relative;
+}
+.opt-row input[type="checkbox"]:checked { background: var(--accent); border-color: var(--accent); }
+.opt-row input[type="checkbox"]:checked::after {
+  content: ''; position: absolute;
+  left: 4px; top: 1px; width: 4px; height: 8px;
+  border: 1.5px solid #fff; border-top: none; border-left: none;
+  transform: rotate(45deg);
+}
+.opt-row input[type="checkbox"].pend:checked { background: var(--warn); border-color: var(--warn); }
+
+.opt-label-text { color: var(--text-mid); line-height: 1.4; transition: color 0.12s; }
+.opt-label-text strong {
+  display: block; color: var(--text); font-weight: 600;
+  font-size: 12px; font-family: var(--mono);
+}
+.opt-label-text small { font-size: 11px; color: var(--text-dim); }
+
+/* Number + radio rows */
+.opt-input-row { display: flex; align-items: center; gap: 10px; padding: 5px 0; }
+.opt-input-row .desc { flex: 1; color: var(--text-mid); }
+.opt-input-row .desc strong {
+  display: block; color: var(--text); font-weight: 600;
+  font-size: 12px; font-family: var(--mono);
+}
+.opt-input-row .desc small { font-size: 11px; color: var(--text-dim); }
+
+input[type="number"] {
+  background: var(--bg); border: 1.5px solid var(--border);
+  border-radius: var(--radius); color: var(--text);
+  font-family: var(--mono); font-size: 12px;
+  padding: 4px 8px; width: 70px; outline: none;
+  transition: border-color 0.12s;
+}
+input[type="number"]:focus { border-color: var(--accent); }
+
+.radio-group { display: flex; gap: 12px; }
+.radio-opt { display: flex; align-items: center; gap: 5px; cursor: pointer; }
+.radio-opt input[type="radio"] {
+  appearance: none; width: 14px; height: 14px;
+  border: 1.5px solid var(--border); border-radius: 50%;
+  background: var(--white); cursor: pointer; transition: all 0.12s; position: relative;
+}
+.radio-opt input[type="radio"]:checked { border-color: var(--accent); background: var(--accent); }
+.radio-opt input[type="radio"]:checked::after {
+  content: ''; position: absolute; inset: 3px;
+  border-radius: 50%; background: #fff;
+}
+.radio-opt span { font-size: 12px; }
+
+/* Tag inputs */
+.tag-wrap { padding: 8px 0 2px; }
+.tag-wrap .desc { margin-bottom: 5px; color: var(--text-mid); }
+.tag-wrap .desc strong {
+  display: block; color: var(--text); font-weight: 600;
+  font-size: 12px; font-family: var(--mono);
+}
+.tag-wrap .desc small { font-size: 11px; color: var(--text-dim); }
+
+.tags-box {
+  background: var(--bg); border: 1.5px solid var(--border);
+  border-radius: var(--radius); padding: 5px 7px;
+  display: flex; flex-wrap: wrap; gap: 4px; min-height: 32px;
+  cursor: text; transition: border-color 0.12s;
+}
+.tags-box:focus-within { border-color: var(--accent); background: var(--white); }
+
+.tag {
+  background: #dbeafe; border: 1px solid #bfdbfe;
+  border-radius: 3px; padding: 1px 5px;
+  font-family: var(--mono); font-size: 11px; color: var(--accent);
+  display: flex; align-items: center; gap: 3px;
+}
+.tag-x { cursor: pointer; opacity: 0.5; font-size: 13px; line-height: 1; }
+.tag-x:hover { opacity: 1; }
+
+.tags-input {
+  border: none; background: transparent; color: var(--text);
+  font-family: var(--mono); font-size: 12px;
+  outline: none; min-width: 80px; padding: 1px 0;
+}
+
+/* Modal footer */
+.modal-footer {
+  padding: 10px 16px; border-top: 1px solid var(--border2);
+  display: flex; align-items: center; gap: 8px; background: var(--bg);
+  border-radius: 0 0 10px 10px;
+}
+.pending-note { font-size: 11px; color: var(--warn); flex: 1; }
+
+/* File input hidden */
+#fileInput { display: none; }
+
+/* Export dialog */
+.export-backdrop {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.35); z-index: 200;
+  align-items: center; justify-content: center;
+}
+.export-backdrop.open { display: flex; }
+.export-dialog {
+  background: var(--white); border: 1px solid var(--border);
+  border-radius: 10px; box-shadow: var(--shadow);
+  width: 440px; max-width: 95vw;
+  display: flex; flex-direction: column;
+  animation: min 0.15s ease;
+}
+.export-header {
+  padding: 14px 16px 12px; border-bottom: 1px solid var(--border2);
+  display: flex; align-items: center; gap: 8px;
+}
+.export-title { font-weight: 600; font-size: 15px; flex: 1; }
+.export-body { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+.export-footer {
+  padding: 10px 16px; border-top: 1px solid var(--border2);
+  display: flex; align-items: center; gap: 8px;
+  background: var(--bg); border-radius: 0 0 10px 10px;
+}
+
+/* Format tabs */
+.fmt-tabs { display: flex; gap: 6px; }
+.fmt-tab {
+  flex: 1; padding: 8px; border: 1.5px solid var(--border);
+  border-radius: var(--radius); background: var(--bg);
+  cursor: pointer; text-align: center; transition: all 0.12s;
+  font-size: 12px; font-weight: 500; color: var(--text-mid);
+}
+.fmt-tab:hover { border-color: var(--accent); color: var(--accent); }
+.fmt-tab.active { border-color: var(--accent); background: #eff6ff; color: var(--accent); font-weight: 600; }
+.fmt-tab small { display: block; font-size: 10px; font-weight: 400; color: var(--text-dim); margin-top: 2px; }
+
+/* PDF options grid */
+.pdf-opts { display: none; flex-direction: column; gap: 10px; }
+.pdf-opts.show { display: flex; }
+.opt-row2 { display: flex; align-items: center; gap: 10px; }
+.opt-row2 label { flex: 1; font-size: 12px; color: var(--text-mid); }
+.opt-row2 label strong { display: block; font-size: 12px; color: var(--text); font-weight: 600; }
+.opt-row2 label small { font-size: 11px; color: var(--text-dim); }
+select {
+  background: var(--bg); border: 1.5px solid var(--border);
+  border-radius: var(--radius); color: var(--text);
+  font-family: var(--sans); font-size: 12px;
+  padding: 5px 8px; outline: none; cursor: pointer;
+  transition: border-color 0.12s; min-width: 110px;
+}
+select:focus { border-color: var(--accent); }
+
+/* Progress bar */
+.progress-wrap { display: none; flex-direction: column; gap: 6px; }
+.progress-wrap.show { display: flex; }
+.progress-bar-bg {
+  height: 6px; background: var(--bg); border-radius: 3px;
+  border: 1px solid var(--border2); overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%; background: var(--accent); border-radius: 3px;
+  width: 0%; transition: width 0.2s;
+}
+.progress-label { font-size: 11px; color: var(--text-dim); font-family: var(--mono); }
+
+/* Page markers preview */
+.tile-preview {
+  border: 1px solid var(--border2); border-radius: var(--radius);
+  padding: 8px 10px; background: var(--bg);
+  font-size: 11px; color: var(--text-dim); font-family: var(--mono);
+}
+
+/* Save As dialog */
+.saveas-backdrop {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.35); z-index: 200;
+  align-items: center; justify-content: center;
+}
+.saveas-backdrop.open { display: flex; }
+.saveas-dialog {
+  background: var(--white); border: 1px solid var(--border);
+  border-radius: 10px; box-shadow: var(--shadow);
+  width: 380px; max-width: 95vw; padding: 20px;
+  animation: min 0.15s ease;
+}
+.saveas-title { font-weight: 600; font-size: 15px; margin-bottom: 14px; }
+.saveas-label { font-size: 12px; color: var(--text-dim); margin-bottom: 5px; }
+.saveas-input {
+  width: 100%; background: var(--bg); border: 1.5px solid var(--border);
+  border-radius: var(--radius); color: var(--text);
+  font-family: var(--mono); font-size: 13px;
+  padding: 7px 10px; outline: none; transition: border-color 0.12s;
+}
+.saveas-input:focus { border-color: var(--accent); background: var(--white); }
+.saveas-footer {
+  display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px;
+}
+
+/* Print */
+@media print {
+  .toolbar, .editor-panel, .preview-toolbar, .modal-backdrop { display: none !important; }
+  .app { display: block; }
+  .preview-panel { display: block; height: auto; overflow: visible; }
+  .svg-viewport { overflow: visible; height: auto; background: none; cursor: default; }
+  .svg-canvas { position: static; transform: none !important; }
+  .svg-canvas svg { box-shadow: none; max-width: 100%; }
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<input type="file" id="fileInput" accept=".yaml,.yml,.gsn.yaml">
+<input type="file" id="multiFileInput" accept=".yaml,.yml,.gsn.yaml" multiple>
+
+<div class="app">
+
+  <!-- ── Toolbar ─────────────────────────────────────────────────── -->
+  <div class="toolbar">
+    <span class="logo">gsn2x<em>wasm</em></span>
+
+    <!-- File group -->
+    <button class="btn" onclick="fileNew()" title="New">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+        <path d="M9 1H3a1 1 0 00-1 1v12a1 1 0 001 1h10a1 1 0 001-1V6L9 1z"/><path d="M9 1v5h5"/>
+      </svg>
+      New
+    </button>
+    <button class="btn" onclick="fileOpen()" title="Open">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+        <path d="M1 4a1 1 0 011-1h4l2 2h6a1 1 0 011 1v7a1 1 0 01-1 1H2a1 1 0 01-1-1V4z"/>
+      </svg>
+      Open
+    </button>
+    <button class="btn btn-advanced" onclick="openModules()" title="Manage multiple modules" id="modulesBtn">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+        <rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/>
+        <rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/>
+      </svg>
+      Modules
+      <span class="opts-badge" id="modulesBadge" style="background:var(--accent2);">0</span>
+    </button>
+    <button class="btn" onclick="fileSave()" title="Save">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+        <path d="M13 13H3a1 1 0 01-1-1V3l3-2h7l2 2v9a1 1 0 01-1 1z"/><rect x="5" y="9" width="6" height="5"/><rect x="5" y="1" width="5" height="4"/>
+      </svg>
+      Save
+    </button>
+    <button class="btn" onclick="fileSaveAs()" title="Save As">Save As</button>
+
+    <div class="sep"></div>
+
+    <!-- Print -->
+    <button class="btn" onclick="window.print()" title="Print">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+        <path d="M4 6V1h8v5"/><rect x="1" y="6" width="14" height="7" rx="1"/><path d="M4 10h8M4 13h8"/>
+      </svg>
+      Print
+    </button>
+
+    <!-- Export -->
+    <button class="btn" onclick="openExport()" title="Export SVG or paginated PDF">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+        <path d="M8 1v9M4 6l4 4 4-4"/><path d="M2 12v2a1 1 0 001 1h10a1 1 0 001-1v-2"/>
+      </svg>
+      Export
+    </button>
+
+    <div class="sep"></div>
+
+    <!-- Render group -->
+    <button class="btn btn-advanced" onclick="openModal()">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+        <circle cx="8" cy="8" r="2"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.22 3.22l1.42 1.42M11.36 11.36l1.42 1.42M3.22 12.78l1.42-1.42M11.36 4.64l1.42-1.42"/>
+      </svg>
+      Advanced
+      <span class="opts-badge" id="optsBadge">0</span>
+    </button>
+    <button class="btn btn-primary" onclick="render()">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+        <polygon points="2,1 11,6 2,11"/>
+      </svg>
+      Render
+    </button>
+
+    <div class="sep"></div>
+    <span class="status idle" id="status">ready</span>
+    <div class="spacer"></div>
+
+    <!-- Filename display -->
+    <span id="filenameDisplay" style="font-family:var(--mono);font-size:11px;color:var(--text-dim);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+  </div>
+
+  <!-- ── Editor ──────────────────────────────────────────────────── -->
+  <div class="editor-panel">
+    <div class="panel-label">
+      <span>YAML Input</span>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span style="font-size:10px;font-weight:400;color:var(--text-dim)" id="lineCount"></span>
+        <button class="btn render-all-btn btn-primary" id="renderAllBtn" onclick="renderAll()" style="display:none;" title="Render all modules together">
+          ▶ Render All
+        </button>
+      </div>
+    </div>
+    <!-- Editor module tabs — hidden in single-file mode -->
+    <div class="editor-tabs" id="editorTabs"></div>
+    <div class="active-bar" id="activeBar"></div>
+    <textarea id="yamlInput" spellcheck="false" placeholder="G1:
+  text: Your goal
+  supportedBy: [S1]
+S1:
+  text: A strategy">G1:
+  text: This is a Goal
+  supportedBy: [S1]
+  inContextOf: [C1]
+S1:
+  text: This is a Strategy
+C1:
+  text: This is a Context</textarea>
+  </div>
+
+  <!-- ── Preview ─────────────────────────────────────────────────── -->
+  <div class="preview-panel">
+    <!-- SVG view tabs — one per rendered module -->
+    <div class="tab-bar" id="tabBar"></div>
+    <div class="preview-toolbar">
+      <button class="btn" onclick="fitToScreen()" title="Fit to screen">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+          <path d="M1 6V1h5M10 1h5v5M15 10v5h-5M6 15H1v-5"/>
+        </svg>
+        Fit
+      </button>
+      <button class="btn" onclick="resetZoom()" title="Reset to 100%">1:1</button>
+      <span class="zoom-label" id="zoomLabel">100%</span>
+      <span style="font-size:11px;color:var(--text-dim);margin-left:4px;">scroll to zoom · drag to pan</span>
+    </div>
+    <div class="svg-viewport" id="viewport">
+      <div class="svg-canvas" id="canvas">
+        <!-- SVG injected here -->
+      </div>
+      <div class="empty-hint" id="emptyHint">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" opacity="0.3">
+          <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/>
+        </svg>
+        <span>Click Render to generate diagram</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── Advanced Options Modal ────────────────────────────────────── -->
+<div class="modal-backdrop" id="modalBackdrop" onclick="backdropClick(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+        <circle cx="8" cy="8" r="2"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.22 3.22l1.42 1.42M11.36 11.36l1.42 1.42M3.22 12.78l1.42-1.42M11.36 4.64l1.42-1.42"/>
+      </svg>
+      <span class="modal-title">Advanced Render Options</span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+
+    <div class="modal-body">
+
+      <!-- OUTPUT MODIFICATION — LIVE -->
+      <div class="opt-group">
+        <div class="opt-group-title">
+          Output Modification
+          <span class="impl-tag live">✓ live</span>
+        </div>
+
+        <div class="opt-input-row">
+          <div class="desc">
+            <strong>--wrap=&lt;n&gt;</strong>
+            <small>Characters per line before wrapping node text. 0 = no wrap.</small>
+          </div>
+          <input type="number" id="optWrap" min="0" max="200" value="0">
+        </div>
+
+        <div class="opt-input-row" style="margin-top:8px;">
+          <div class="desc">
+            <strong>Legend</strong>
+            <small>Module legend in argument views.</small>
+          </div>
+          <div class="radio-group">
+            <label class="radio-opt">
+              <input type="radio" name="legend" id="legShort" value="short" checked>
+              <span>Short</span>
+            </label>
+            <label class="radio-opt">
+              <input type="radio" name="legend" id="legFull" value="full">
+              <span>Full</span>
+            </label>
+            <label class="radio-opt">
+              <input type="radio" name="legend" id="legNone" value="none">
+              <span>None</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="tag-wrap">
+          <div class="desc">
+            <strong>--layer=&lt;name&gt;</strong>
+            <small>Additional layers to render. Type name + Enter.</small>
+          </div>
+          <div class="tags-box" id="layersBox" onclick="document.getElementById('layerIn').focus()">
+            <input class="tags-input" id="layerIn" placeholder="add layer…" onkeydown="tagKey(event,'layers')">
+          </div>
+        </div>
+      </div>
+
+      <!-- OUTPUT TOGGLES — PENDING -->
+      <div class="opt-group">
+        <div class="opt-group-title">
+          Output Toggles
+          <span class="impl-tag pending">⏳ phase 2</span>
+        </div>
+        <label class="opt-row">
+          <input type="checkbox" class="pend" id="optNoArg">
+          <div class="opt-label-text"><strong>--no-arg</strong><small>Suppress individual argument view SVGs</small></div>
+        </label>
+        <label class="opt-row">
+          <input type="checkbox" class="pend" id="optNoFull">
+          <div class="opt-label-text"><strong>--no-full</strong><small>Suppress complete combined view</small></div>
+        </label>
+        <label class="opt-row">
+          <input type="checkbox" class="pend" id="optNoArch">
+          <div class="opt-label-text"><strong>--no-arch</strong><small>Suppress architecture view</small></div>
+        </label>
+        <label class="opt-row">
+          <input type="checkbox" class="pend" id="optNoEv">
+          <div class="opt-label-text"><strong>--no-evidence</strong><small>Suppress evidence list output</small></div>
+        </label>
+        <label class="opt-row">
+          <input type="checkbox" class="pend" id="optStats">
+          <div class="opt-label-text"><strong>--statistics</strong><small>Output node/module statistics</small></div>
+        </label>
+      </div>
+
+      <!-- CHECKS — PENDING -->
+      <div class="opt-group">
+        <div class="opt-group-title">
+          Checks
+          <span class="impl-tag pending">⏳ phase 2</span>
+        </div>
+        <label class="opt-row">
+          <input type="checkbox" class="pend" id="optCheck">
+          <div class="opt-label-text"><strong>--check</strong><small>Validate only, do not render</small></div>
+        </label>
+        <label class="opt-row">
+          <input type="checkbox" class="pend" id="optExtCheck">
+          <div class="opt-label-text"><strong>--extended-check</strong><small>Additional structural checks</small></div>
+        </label>
+        <label class="opt-row">
+          <input type="checkbox" class="pend" id="optDialectic">
+          <div class="opt-label-text"><strong>--warn-dialectic</strong><small>Warn if Dialectic Extension is used</small></div>
+        </label>
+        <div class="tag-wrap">
+          <div class="desc">
+            <strong>--exclude=&lt;module&gt;</strong>
+            <small>Exclude modules from reference checks. Type name + Enter.</small>
+          </div>
+          <div class="tags-box" id="excludeBox" onclick="document.getElementById('excludeIn').focus()">
+            <input class="tags-input" id="excludeIn" placeholder="add module…" onkeydown="tagKey(event,'exclude')">
+          </div>
+        </div>
+      </div>
+
+      <!-- STYLESHEET — PENDING -->
+      <div class="opt-group">
+        <div class="opt-group-title">
+          Stylesheet &amp; Visibility
+          <span class="impl-tag pending">⏳ phase 2</span>
+        </div>
+        <label class="opt-row">
+          <input type="checkbox" class="pend" id="optEmbedCss">
+          <div class="opt-label-text"><strong>--embed-css</strong><small>Embed stylesheets inline rather than linking</small></div>
+        </label>
+        <div class="tag-wrap">
+          <div class="desc">
+            <strong>--stylesheet=&lt;url&gt;</strong>
+            <small>Link external stylesheet URLs. Type URL + Enter.</small>
+          </div>
+          <div class="tags-box" id="ssBox" onclick="document.getElementById('ssIn').focus()">
+            <input class="tags-input" id="ssIn" placeholder="https://…" onkeydown="tagKey(event,'stylesheets')">
+          </div>
+        </div>
+        <div class="tag-wrap">
+          <div class="desc">
+            <strong>--mask=&lt;module&gt;</strong>
+            <small>Hide modules from views. Type name + Enter.</small>
+          </div>
+          <div class="tags-box" id="maskBox" onclick="document.getElementById('maskIn').focus()">
+            <input class="tags-input" id="maskIn" placeholder="add module…" onkeydown="tagKey(event,'mask')">
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /modal-body -->
+
+    <div class="modal-footer">
+      <span class="pending-note">⏳ Phase 2 options are visible but not yet wired to the Rust API</span>
+      <button class="btn" onclick="resetOpts()">Reset</button>
+      <button class="btn btn-primary" onclick="applyRender()">▶ Render</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modules Manager Modal ─────────────────────────────────────── -->
+<div class="modal-backdrop" id="modulesBackdrop" onclick="modulesBackdropClick(event)">
+  <div class="modules-modal">
+    <div class="modal-header">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+        <rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/>
+        <rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/>
+      </svg>
+      <span class="modal-title">Module Manager</span>
+      <button class="modal-close" onclick="closeModules()">✕</button>
+    </div>
+
+    <div style="padding:12px 16px;border-bottom:1px solid var(--border2);display:flex;gap:8px;align-items:center;">
+      <button class="btn btn-primary" onclick="addModules()" style="flex:1;">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M6 1v10M1 6h10"/>
+        </svg>
+        Add YAML files…
+      </button>
+      <button class="btn" onclick="clearAllModules()" id="clearModulesBtn" style="color:var(--error);border-color:#fecaca;">
+        Clear all
+      </button>
+    </div>
+
+    <div class="modules-list" id="modulesList">
+      <div class="modules-empty">No modules loaded. Click "Add YAML files…" to begin.</div>
+    </div>
+
+    <div style="padding:10px 16px;border-top:1px solid var(--border2);background:var(--bg);border-radius:0 0 10px 10px;display:flex;align-items:center;gap:8px;">
+      <span style="font-size:11px;color:var(--text-dim);flex:1;" id="modulesNote">
+        First file added is treated as the top-level module.
+      </span>
+      <button class="btn" onclick="closeModules()">Close</button>
+      <button class="btn btn-primary" onclick="renderAll(); closeModules();" id="modulesRenderBtn" disabled>
+        ▶ Render All
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Export Dialog ─────────────────────────────────────────────── -->
+<div class="export-backdrop" id="exportBackdrop" onclick="exportBackdropClick(event)">
+  <div class="export-dialog">
+    <div class="export-header">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6">
+        <path d="M8 1v9M4 6l4 4 4-4"/><path d="M2 12v2a1 1 0 001 1h10a1 1 0 001-1v-2"/>
+      </svg>
+      <span class="export-title">Export Diagram</span>
+      <button class="modal-close" onclick="closeExport()">✕</button>
+    </div>
+
+    <div class="export-body">
+
+      <!-- Format selector -->
+      <div>
+        <div style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text-dim);margin-bottom:8px;">Format</div>
+        <div class="fmt-tabs">
+          <div class="fmt-tab active" id="tabSvg" onclick="setFmt('svg')">
+            SVG
+            <small>Vector, lossless</small>
+          </div>
+          <div class="fmt-tab" id="tabPng" onclick="setFmt('png')">
+            PNG
+            <small>Raster image</small>
+          </div>
+          <div class="fmt-tab" id="tabPdf" onclick="setFmt('pdf')">
+            PDF
+            <small>Paginated</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- PDF options (shown only for PDF) -->
+      <div class="pdf-opts" id="pdfOpts">
+        <div class="opt-row2">
+          <label>
+            <strong>Paper size</strong>
+          </label>
+          <select id="paperSize">
+            <option value="a4">A4</option>
+            <option value="a3">A3</option>
+            <option value="letter">Letter</option>
+            <option value="a2">A2</option>
+          </select>
+        </div>
+        <div class="opt-row2">
+          <label>
+            <strong>Orientation</strong>
+          </label>
+          <select id="paperOrient">
+            <option value="landscape">Landscape</option>
+            <option value="portrait">Portrait</option>
+          </select>
+        </div>
+        <div class="opt-row2">
+          <label>
+            <strong>Quality / size</strong>
+            <small>JPEG quality — lower = smaller file</small>
+          </label>
+          <select id="pdfQuality">
+            <option value="screen">Screen (96 dpi, JPEG 75)</option>
+            <option value="print" selected>Print (150 dpi, JPEG 85)</option>
+            <option value="hq">High (200 dpi, JPEG 92)</option>
+            <option value="lossless">Lossless (150 dpi, PNG)</option>
+          </select>
+        </div>
+
+        <div class="opt-row2">
+          <label>
+            <strong>Overlap / bleed</strong>
+            <small>Shared content at page edges (px in diagram coords)</small>
+          </label>
+          <input type="number" id="pdfOverlap" min="0" max="200" value="20" style="width:70px;">
+        </div>
+        <div class="opt-row2">
+          <label class="opt-row" style="cursor:pointer;gap:8px;">
+            <input type="checkbox" id="pdfMarkers" checked style="margin-top:0;">
+            <div>
+              <strong>Page markers</strong>
+              <small>Dashed border + page label on each tile</small>
+            </div>
+          </label>
+        </div>
+
+        <!-- Live tile count preview -->
+        <div class="tile-preview" id="tilePreview">—</div>
+      </div>
+
+      <!-- PNG options -->
+      <div id="pngOpts" style="display:none;">
+        <div class="opt-row2">
+          <label><strong>Scale</strong><small style="display:block;">Multiplier applied to SVG natural size</small></label>
+          <select id="pngScale">
+            <option value="1">1× (natural)</option>
+            <option value="2" selected>2× (retina)</option>
+            <option value="3">3×</option>
+            <option value="4">4×</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Progress -->
+      <div class="progress-wrap" id="progressWrap">
+        <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill"></div></div>
+        <div class="progress-label" id="progressLabel">Preparing…</div>
+      </div>
+
+    </div>
+
+    <div class="export-footer">
+      <span style="font-size:11px;color:var(--text-dim);flex:1;" id="exportNote">Diagram must be rendered before exporting.</span>
+      <button class="btn" onclick="closeExport()">Cancel</button>
+      <button class="btn btn-primary" id="exportBtn" onclick="doExport()">
+        Download
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Save As Dialog ───────────────────────────────────────────── -->
+<div class="saveas-backdrop" id="saveAsBackdrop">
+  <div class="saveas-dialog">
+    <div class="saveas-title">Save As</div>
+    <div class="saveas-label">Filename</div>
+    <input class="saveas-input" id="saveAsInput" type="text" placeholder="diagram.gsn.yaml"
+      onkeydown="if(event.key==='Enter')saveAsConfirm(); if(event.key==='Escape')saveAsCancel();">
+    <div class="saveas-footer">
+      <button class="btn" onclick="saveAsCancel()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveAsConfirm()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script type="module">
+import init, { process_gsn, process_gsn_multi } from './pkg/gsn2x_lib.js';
+
+// ── State ───────────────────────────────────────────────────────
+const tags = { layers: [], exclude: [], stylesheets: [], mask: [] };
+let wasmReady = false;
+let currentFilename = null;   // active file name (single-file mode)
+
+// Multi-module state
+// modules: [{filename, yamlContent, moduleName, dirty}]
+// renderedTabs: [{name, svg, svgW, svgH}]
+let modules = [];           // loaded files (editor tabs)
+let activeEditorIdx = 0;    // which editor tab is shown
+let renderedTabs = [];      // rendered SVG outputs (view tabs)
+let activeViewIdx = 0;      // which view tab is shown
+
+// per-tab pan/zoom state
+let tabViewState = [];      // [{scale, panX, panY}]
+
+// pan/zoom working state (for active tab)
+let scale = 1, panX = 0, panY = 0;
+let isPanning = false, startX = 0, startY = 0, startPanX = 0, startPanY = 0;
+let svgNaturalW = 0, svgNaturalH = 0;
+
+// ── Init ────────────────────────────────────────────────────────
+await init();
+wasmReady = true;
+setStatus('ok', 'wasm loaded');
+setTimeout(() => setStatus('idle', 'ready'), 1500);
+updateLineCount();
+render();
+
+// ── Expose globals ──────────────────────────────────────────────
+Object.assign(window, {
+  render, renderAll, openModal, closeModal, backdropClick,
+  tagKey, removeTag, resetOpts, applyRender,
+  fitToScreen, resetZoom,
+  fileNew, fileOpen, fileSave, fileSaveAs,
+  saveAsConfirm, saveAsCancel,
+  openExport, closeExport, exportBackdropClick, setFmt, doExport,
+  openModules, closeModules, modulesBackdropClick,
+  addModules, removeModule, clearAllModules,
+  switchEditorTab, switchViewTab,
+});
+
+// ── Single-file render ───────────────────────────────────────────
+function render() {
+  if (!wasmReady) return;
+  clearError();
+  // Sync textarea → active module if in multi-module mode
+  if (modules.length > 0) {
+    modules[activeEditorIdx].yamlContent = document.getElementById('yamlInput').value;
+    modules[activeEditorIdx].dirty = false;
+    refreshEditorTabs();
+  }
+  const yaml = document.getElementById('yamlInput').value;
+  const wrap = parseInt(document.getElementById('optWrap').value) || 0;
+  setStatus('loading', 'rendering…');
+  setTimeout(() => {
+    try {
+      const svg = process_gsn(yaml, wrap);
+      const dims = extractSvgDims(svg);
+      renderedTabs = [{ name: currentFilename || 'diagram', svg, ...dims }];
+      activeViewIdx = 0;
+      tabViewState = [null];
+      refreshViewTabs();
+      displayTab(0, true);
+      setStatus('ok', 'ok');
+    } catch(e) {
+      showError(String(e));
+      setStatus('err', 'error');
+    }
+  }, 10);
+}
+
+// ── Multi-module render ──────────────────────────────────────────
+function renderAll() {
+  if (!wasmReady) return;
+  clearError();
+  if (modules.length === 0) { render(); return; }
+  // Sync textarea → active module
+  modules[activeEditorIdx].yamlContent = document.getElementById('yamlInput').value;
+  modules[activeEditorIdx].dirty = false;
+  refreshEditorTabs();
+  if (modules.length === 1) { render(); return; }
+
+  const wrap = parseInt(document.getElementById('optWrap').value) || 0;
+  setStatus('loading', `rendering ${modules.length} modules…`);
+  setTimeout(() => {
+    try {
+      const filenames  = modules.map(m => m.filename);
+      const yamlInputs = modules.map(m => m.yamlContent);
+      const jsonStr    = process_gsn_multi(filenames, yamlInputs, wrap);
+      const results    = JSON.parse(jsonStr);
+      renderedTabs = results.map(r => ({ name: r.name, svg: r.svg, ...extractSvgDims(r.svg) }));
+      activeViewIdx = 0;
+      tabViewState  = renderedTabs.map(() => null);
+      refreshViewTabs();
+      displayTab(0, true);
+      setStatus('ok', `${renderedTabs.length} modules rendered`);
+    } catch(e) {
+      showError(String(e));
+      setStatus('err', 'error');
+    }
+  }, 10);
+}
+
+function applyRender() { closeModal(); modules.length > 1 ? renderAll() : render(); }
+
+// ── Tab display helpers ──────────────────────────────────────────
+function extractSvgDims(svgStr) {
+  const parser = new DOMParser();
+  const doc    = parser.parseFromString(svgStr, 'image/svg+xml');
+  const el     = doc.documentElement;
+  const vb     = el.getAttribute('viewBox');
+  if (vb) {
+    const p = vb.trim().split(/[\s,]+/);
+    if (p.length >= 4) return { svgW: parseFloat(p[2]), svgH: parseFloat(p[3]) };
+  }
+  return { svgW: parseFloat(el.getAttribute('width')) || 800,
+           svgH: parseFloat(el.getAttribute('height')) || 600 };
+}
+
+function refreshViewTabs() {
+  const bar = document.getElementById('tabBar');
+  bar.innerHTML = '';
+  if (renderedTabs.length <= 1) { bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+  renderedTabs.forEach((t, i) => {
+    const tab = document.createElement('div');
+    tab.className = 'tab' + (i === activeViewIdx ? ' active' : '');
+    tab.textContent = t.name;
+    tab.onclick = () => switchViewTab(i);
+    bar.appendChild(tab);
+  });
+}
+
+function switchViewTab(i) {
+  // Save current pan/zoom state
+  tabViewState[activeViewIdx] = { scale, panX, panY };
+  activeViewIdx = i;
+  refreshViewTabs();
+  displayTab(i, false);
+}
+
+function displayTab(i, fit) {
+  if (renderedTabs.length === 0) return;
+  const t = renderedTabs[i];
+  const canvas = document.getElementById('canvas');
+  canvas.innerHTML = t.svg;
+  document.getElementById('emptyHint').style.display = 'none';
+  const svgEl = canvas.querySelector('svg');
+  if (svgEl) {
+    svgEl.style.width  = t.svgW + 'px';
+    svgEl.style.height = t.svgH + 'px';
+  }
+  svgNaturalW = t.svgW;
+  svgNaturalH = t.svgH;
+  // Restore or fit
+  const saved = tabViewState[i];
+  if (!fit && saved) {
+    scale = saved.scale; panX = saved.panX; panY = saved.panY;
+    applyTransform();
+  } else {
+    fitToScreen();
+    tabViewState[i] = { scale, panX, panY };
+  }
+}
+
+// ── Editor tabs ──────────────────────────────────────────────────
+function refreshEditorTabs() {
+  const bar = document.getElementById('editorTabs');
+  const renderAllBtn = document.getElementById('renderAllBtn');
+  bar.innerHTML = '';
+  if (modules.length <= 1) {
+    bar.style.display = 'none';
+    renderAllBtn.style.display = 'none';
+    return;
+  }
+  bar.style.display = 'flex';
+  renderAllBtn.style.display = '';
+  modules.forEach((m, i) => {
+    const tab = document.createElement('div');
+    tab.className = 'editor-tab' + (i === activeEditorIdx ? ' active' : '');
+    const dot = document.createElement('span');
+    dot.className = 'tab-dot';
+    if (m.dirty) dot.style.display = 'block';
+    const label = document.createElement('span');
+    label.textContent = m.filename;
+    const x = document.createElement('span');
+    x.className = 'editor-tab-x';
+    x.textContent = '×';
+    x.onclick = e => { e.stopPropagation(); removeModule(i); };
+    tab.appendChild(dot);
+    tab.appendChild(label);
+    tab.appendChild(x);
+    tab.onclick = () => switchEditorTab(i);
+    bar.appendChild(tab);
+  });
+  // Update modules badge
+  const badge = document.getElementById('modulesBadge');
+  badge.textContent = modules.length;
+  badge.classList.toggle('on', modules.length > 0);
+}
+
+function switchEditorTab(i) {
+  // Save current textarea to current module
+  if (modules.length > 0)
+    modules[activeEditorIdx].yamlContent = document.getElementById('yamlInput').value;
+  activeEditorIdx = i;
+  document.getElementById('yamlInput').value = modules[i].yamlContent;
+  currentFilename = modules[i].filename;
+  updateFilename();
+  updateLineCount();
+  refreshEditorTabs();
+}
+
+// ── Module manager ───────────────────────────────────────────────
+function openModules() {
+  refreshModulesList();
+  document.getElementById('modulesBackdrop').classList.add('open');
+}
+function closeModules() {
+  document.getElementById('modulesBackdrop').classList.remove('open');
+}
+function modulesBackdropClick(e) {
+  if (e.target === document.getElementById('modulesBackdrop')) closeModules();
+}
+
+function addModules() {
+  document.getElementById('multiFileInput').onchange = async (e) => {
+    const files = Array.from(e.target.files);
+    for (const file of files) {
+      // Avoid duplicates by filename
+      if (modules.find(m => m.filename === file.name)) continue;
+      const yamlContent = await file.text();
+      modules.push({ filename: file.name, yamlContent, dirty: false });
+    }
+    // If first load, populate textarea with first module
+    if (modules.length > 0) {
+      activeEditorIdx = 0;
+      document.getElementById('yamlInput').value = modules[0].yamlContent;
+      currentFilename = modules[0].filename;
+      updateFilename();
+      updateLineCount();
+    }
+    refreshEditorTabs();
+    refreshModulesList();
+    document.getElementById('modulesRenderBtn').disabled = modules.length === 0;
+    e.target.value = '';
+  };
+  document.getElementById('multiFileInput').click();
+}
+
+function removeModule(i) {
+  modules.splice(i, 1);
+  if (modules.length === 0) {
+    activeEditorIdx = 0;
+    // Restore to standalone textarea mode
+    refreshEditorTabs();
+    refreshModulesList();
+    document.getElementById('modulesBadge').classList.remove('on');
+    document.getElementById('modulesRenderBtn').disabled = true;
+    return;
+  }
+  if (activeEditorIdx >= modules.length) activeEditorIdx = modules.length - 1;
+  document.getElementById('yamlInput').value = modules[activeEditorIdx].yamlContent;
+  currentFilename = modules[activeEditorIdx].filename;
+  updateFilename();
+  updateLineCount();
+  refreshEditorTabs();
+  refreshModulesList();
+  document.getElementById('modulesRenderBtn').disabled = modules.length === 0;
+}
+
+function clearAllModules() {
+  if (modules.length > 0 && !confirm('Remove all loaded modules?')) return;
+  modules = [];
+  activeEditorIdx = 0;
+  refreshEditorTabs();
+  refreshModulesList();
+  document.getElementById('modulesBadge').classList.remove('on');
+  document.getElementById('modulesRenderBtn').disabled = true;
+}
+
+function refreshModulesList() {
+  const list = document.getElementById('modulesList');
+  if (modules.length === 0) {
+    list.innerHTML = '<div class="modules-empty">No modules loaded. Click "Add YAML files…" to begin.</div>';
+    document.getElementById('modulesNote').textContent = 'First file added is treated as the top-level module.';
+    return;
+  }
+  list.innerHTML = '';
+  modules.forEach((m, i) => {
+    const row = document.createElement('div');
+    row.className = 'module-row';
+    row.innerHTML = `
+      <div class="module-row-icon ${i === 0 ? 'top' : 'sub'}">${i === 0 ? 'TOP' : 'SUB'}</div>
+      <div class="module-row-info">
+        <div class="module-row-name">${esc(m.filename)}</div>
+        <div class="module-row-file">${m.yamlContent.split('\n').length} lines</div>
+      </div>
+      <button class="module-row-del" onclick="removeModule(${i})" title="Remove">×</button>`;
+    list.appendChild(row);
+  });
+  document.getElementById('modulesNote').textContent =
+    `${modules.length} module${modules.length > 1 ? 's' : ''} loaded. "${modules[0].filename}" is top-level.`;
+}
+
+// ── Error helpers ────────────────────────────────────────────────
+function showError(msg) {
+  document.getElementById('canvas').innerHTML = '';
+  document.getElementById('emptyHint').style.display = 'none';
+  let err = document.querySelector('.error-box');
+  if (!err) {
+    err = document.createElement('div');
+    err.className = 'error-box';
+    document.getElementById('viewport').appendChild(err);
+  }
+  err.textContent = msg;
+}
+function clearError() { document.querySelector('.error-box')?.remove(); }
+
+// ── Zoom / Pan ──────────────────────────────────────────────────
+const viewport = document.getElementById('viewport');
+const canvas   = document.getElementById('canvas');
+
+function applyTransform() {
+  canvas.style.transform = `translate(${panX}px,${panY}px) scale(${scale})`;
+  document.getElementById('zoomLabel').textContent = Math.round(scale * 100) + '%';
+}
+
+function fitToScreen() {
+  if (!svgNaturalW || !svgNaturalH) { scale = 1; panX = panY = 0; applyTransform(); return; }
+  const vw = viewport.clientWidth  - 40;
+  const vh = viewport.clientHeight - 40;
+  scale = Math.min(vw / svgNaturalW, vh / svgNaturalH, 1); // never upscale beyond 100%
+  panX = (viewport.clientWidth  - svgNaturalW * scale) / 2;
+  panY = (viewport.clientHeight - svgNaturalH * scale) / 2;
+  if (panX < 0) panX = 20;
+  if (panY < 0) panY = 20;
+  applyTransform();
+}
+
+function resetZoom() {
+  scale = 1;
+  panX = Math.max(20, (viewport.clientWidth  - svgNaturalW) / 2);
+  panY = Math.max(20, (viewport.clientHeight - svgNaturalH) / 2);
+  applyTransform();
+}
+
+// Scroll wheel zoom — zoom toward cursor
+viewport.addEventListener('wheel', e => {
+  e.preventDefault();
+  const rect   = viewport.getBoundingClientRect();
+  const mouseX = e.clientX - rect.left;
+  const mouseY = e.clientY - rect.top;
+  const delta  = e.deltaY < 0 ? 1.12 : 1 / 1.12;
+  const newScale = Math.max(0.05, Math.min(10, scale * delta));
+  // Adjust pan so zoom centres on cursor
+  panX = mouseX - (mouseX - panX) * (newScale / scale);
+  panY = mouseY - (mouseY - panY) * (newScale / scale);
+  scale = newScale;
+  applyTransform();
+}, { passive: false });
+
+// Drag to pan
+viewport.addEventListener('mousedown', e => {
+  if (e.button !== 0) return;
+  isPanning = true;
+  startX = e.clientX; startY = e.clientY;
+  startPanX = panX;   startPanY = panY;
+  viewport.classList.add('panning');
+});
+window.addEventListener('mousemove', e => {
+  if (!isPanning) return;
+  panX = startPanX + (e.clientX - startX);
+  panY = startPanY + (e.clientY - startY);
+  applyTransform();
+});
+window.addEventListener('mouseup', () => {
+  isPanning = false;
+  viewport.classList.remove('panning');
+});
+
+// ── File operations ─────────────────────────────────────────────
+function fileNew() {
+  if (!confirm('Start a new file? Unsaved changes will be lost.')) return;
+  modules = [];
+  activeEditorIdx = 0;
+  renderedTabs = [];
+  document.getElementById('yamlInput').value = '';
+  document.getElementById('canvas').innerHTML = '';
+  document.getElementById('emptyHint').style.display = '';
+  document.getElementById('tabBar').innerHTML = '';
+  document.getElementById('tabBar').style.display = 'none';
+  currentFilename = null;
+  refreshEditorTabs();
+  updateFilename();
+  updateLineCount();
+}
+
+function fileOpen() {
+  document.getElementById('fileInput').onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    // Single-file open: clear multi-module state
+    modules = [];
+    activeEditorIdx = 0;
+    currentFilename = file.name;
+    document.getElementById('yamlInput').value = await file.text();
+    refreshEditorTabs();
+    updateFilename(); updateLineCount(); render();
+    e.target.value = '';
+  };
+  document.getElementById('fileInput').click();
+}
+
+async function fileSave() {
+  // Save the active module's content
+  const filename = modules.length > 0
+    ? modules[activeEditorIdx].filename
+    : currentFilename;
+  if (filename) {
+    if (modules.length > 0)
+      modules[activeEditorIdx].yamlContent = document.getElementById('yamlInput').value;
+    downloadYaml(filename);
+    setStatus('ok', 'saved');
+    setTimeout(() => setStatus('idle', 'ready'), 1500);
+  } else {
+    fileSaveAs();
+  }
+}
+
+function fileSaveAs() {
+  const suggested = (modules.length > 0
+    ? modules[activeEditorIdx].filename
+    : currentFilename) || 'diagram.gsn.yaml';
+  document.getElementById('saveAsInput').value = suggested;
+  document.getElementById('saveAsBackdrop').classList.add('open');
+  const inp = document.getElementById('saveAsInput');
+  setTimeout(() => {
+    inp.focus();
+    const dot = inp.value.indexOf('.');
+    inp.setSelectionRange(0, dot > 0 ? dot : inp.value.length);
+  }, 50);
+}
+
+function saveAsConfirm() {
+  let name = document.getElementById('saveAsInput').value.trim();
+  if (!name) return;
+  if (!name.endsWith('.yaml') && !name.endsWith('.yml')) name += '.gsn.yaml';
+  if (modules.length > 0) {
+    modules[activeEditorIdx].filename = name;
+    modules[activeEditorIdx].yamlContent = document.getElementById('yamlInput').value;
+    currentFilename = name;
+    refreshEditorTabs();
+    refreshModulesList();
+  } else {
+    currentFilename = name;
+  }
+  updateFilename();
+  document.getElementById('saveAsBackdrop').classList.remove('open');
+  downloadYaml(name);
+  setStatus('ok', 'saved');
+  setTimeout(() => setStatus('idle', 'ready'), 1500);
+}
+
+function saveAsCancel() {
+  document.getElementById('saveAsBackdrop').classList.remove('open');
+}
+
+function downloadYaml(filename) {
+  const yaml = document.getElementById('yamlInput').value;
+  const blob = new Blob([yaml], { type: 'text/yaml' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function updateFilename() {
+  const name = modules.length > 0
+    ? modules[activeEditorIdx]?.filename
+    : currentFilename;
+  document.getElementById('filenameDisplay').textContent = name || '';
+}
+
+// ── Export ──────────────────────────────────────────────────────
+
+// Paper sizes in mm
+const PAPER = {
+  a4:     { w: 297, h: 210 },
+  a3:     { w: 420, h: 297 },
+  a2:     { w: 594, h: 420 },
+  letter: { w: 279, h: 216 },
+};
+const QUALITY_PRESETS = {
+  screen:   { dpi:  96, fmt: 'JPEG', q: 0.75 },
+  print:    { dpi: 150, fmt: 'JPEG', q: 0.85 },
+  hq:       { dpi: 200, fmt: 'JPEG', q: 0.92 },
+  lossless: { dpi: 150, fmt: 'PNG',  q: 1.00 },
+};
+
+function getQuality() {
+  return QUALITY_PRESETS[document.getElementById('pdfQuality')?.value] || QUALITY_PRESETS.print;
+}
+
+let exportFmt = 'svg';
+
+function openExport() {
+  const hasSvg = !!document.querySelector('#canvas svg');
+  document.getElementById('exportNote').textContent = hasSvg
+    ? 'Choose format and options below.'
+    : '⚠ Render the diagram first before exporting.';
+  document.getElementById('exportBtn').disabled = !hasSvg;
+  updateTilePreview();
+  document.getElementById('exportBackdrop').classList.add('open');
+}
+function closeExport() {
+  document.getElementById('exportBackdrop').classList.remove('open');
+  document.getElementById('progressWrap').classList.remove('show');
+  document.getElementById('progressFill').style.width = '0%';
+}
+function exportBackdropClick(e) {
+  if (e.target === document.getElementById('exportBackdrop')) closeExport();
+}
+
+function setFmt(fmt) {
+  exportFmt = fmt;
+  ['svg','png','pdf'].forEach(f => {
+    document.getElementById('tab' + f.charAt(0).toUpperCase() + f.slice(1))
+      .classList.toggle('active', f === fmt);
+  });
+  document.getElementById('pdfOpts').classList.toggle('show', fmt === 'pdf');
+  document.getElementById('pngOpts').style.display = fmt === 'png' ? 'flex' : 'none';
+  if (fmt === 'pdf') updateTilePreview();
+}
+
+function getSvgElement() {
+  // For export, use the currently displayed SVG (active view tab)
+  return document.querySelector('#canvas svg');
+}
+
+function getSvgDimensions(svgEl) {
+  // Prefer stored natural dims from the active rendered tab
+  if (renderedTabs[activeViewIdx]) {
+    const t = renderedTabs[activeViewIdx];
+    if (t.svgW && t.svgH) return { w: t.svgW, h: t.svgH };
+  }
+  const vb = svgEl.getAttribute('viewBox');
+  if (vb) {
+    const p = vb.trim().split(/[\s,]+/);
+    if (p.length >= 4) return { w: parseFloat(p[2]), h: parseFloat(p[3]) };
+  }
+  return {
+    w: parseFloat(svgEl.getAttribute('width'))  || svgEl.clientWidth  || 800,
+    h: parseFloat(svgEl.getAttribute('height')) || svgEl.clientHeight || 600,
+  };
+}
+
+function calcTiles() {
+  const svgEl = getSvgElement();
+  if (!svgEl) return null;
+  const { w: svgW, h: svgH } = getSvgDimensions(svgEl);
+  const paper = PAPER[document.getElementById('paperSize').value] || PAPER.a4;
+  const orient = document.getElementById('paperOrient').value;
+  const pageW_mm = orient === 'landscape' ? paper.w : paper.h;
+  const pageH_mm = orient === 'landscape' ? paper.h : paper.w;
+  const dpi = getQuality().dpi;
+  const MM_TO_PX = dpi / 25.4;
+  const pageW_px = pageW_mm * MM_TO_PX;
+  const pageH_px = pageH_mm * MM_TO_PX;
+  const overlap  = parseFloat(document.getElementById('pdfOverlap').value) || 0;
+
+  const rows  = Math.max(1, Math.ceil(svgH / pageH_px));
+  const tileH = svgH / rows;
+  const tileW = tileH * (pageW_px / pageH_px);
+  const cols  = Math.max(1, Math.ceil(svgW / tileW));
+
+  return { svgW, svgH, rows, cols, tileW, tileH, pageW_mm, pageH_mm, pageW_px, pageH_px, overlap };
+}
+
+function updateTilePreview() {
+  const t = calcTiles();
+  const el = document.getElementById('tilePreview');
+  if (!t) { el.textContent = 'Render the diagram first.'; return; }
+  el.textContent =
+    `${t.cols} × ${t.rows} pages  (${t.cols * t.rows} total)  ` +
+    `·  SVG ${Math.round(t.svgW)}×${Math.round(t.svgH)}px  ` +
+    `·  tile ${Math.round(t.tileW)}×${Math.round(t.tileH)}px`;
+}
+
+// Update preview when options change
+['paperSize','paperOrient','pdfOverlap','pdfQuality'].forEach(id => {
+  document.getElementById(id)?.addEventListener('change', updateTilePreview);
+});
+
+async function doExport() {
+  const svgEl = getSvgElement();
+  if (!svgEl) return;
+  if (exportFmt === 'svg') return exportSvg(svgEl);
+  if (exportFmt === 'png') return exportPng(svgEl);
+  if (exportFmt === 'pdf') return exportPdf(svgEl);
+}
+
+// ── SVG export ──────────────────────────────────────────────────
+function exportSvg(svgEl) {
+  const serializer = new XMLSerializer();
+  const svgStr = serializer.serializeToString(svgEl);
+  const blob = new Blob([svgStr], { type: 'image/svg+xml' });
+  triggerDownload(blob, baseName() + '.svg');
+  closeExport();
+}
+
+// ── PNG export ──────────────────────────────────────────────────
+async function exportPng(svgEl) {
+  const scale = parseFloat(document.getElementById('pngScale').value) || 2;
+  const { w, h } = getSvgDimensions(svgEl);
+  const canvas = document.createElement('canvas');
+  canvas.width  = w * scale;
+  canvas.height = h * scale;
+  const ctx = canvas.getContext('2d');
+  const img = await svgToImage(svgEl, w, h);
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  canvas.toBlob(blob => {
+    triggerDownload(blob, baseName() + '.png');
+    closeExport();
+  }, 'image/png');
+}
+
+// ── PDF export ──────────────────────────────────────────────────
+async function exportPdf(svgEl) {
+  const t = calcTiles();
+  if (!t) return;
+  const showMarkers = document.getElementById('pdfMarkers').checked;
+  const total = t.rows * t.cols;
+  const { jsPDF } = window.jspdf;
+
+  setProgress(0, `Preparing ${total} pages…`);
+  document.getElementById('progressWrap').classList.add('show');
+  document.getElementById('exportBtn').disabled = true;
+
+  const pdf = new jsPDF({
+    orientation: t.pageW_mm > t.pageH_mm ? 'landscape' : 'portrait',
+    unit: 'mm',
+    format: [t.pageW_mm, t.pageH_mm],
+    compress: true,
+  });
+
+  let pageNum = 0;
+
+  for (let row = 0; row < t.rows; row++) {
+    for (let col = 0; col < t.cols; col++) {
+      pageNum++;
+      setProgress(
+        (pageNum - 1) / total,
+        `Rendering page ${pageNum} of ${total} (col ${col+1}, row ${row+1})…`
+      );
+
+      // Calculate viewBox for this tile with bleed overlap
+      const vbX = Math.max(0, col * t.tileW - (col > 0 ? t.overlap : 0));
+      const vbY = Math.max(0, row * t.tileH - (row > 0 ? t.overlap : 0));
+      const vbW = t.tileW + (col > 0 ? t.overlap : 0) + (col < t.cols - 1 ? t.overlap : 0);
+      const vbH = t.tileH + (row > 0 ? t.overlap : 0) + (row < t.rows - 1 ? t.overlap : 0);
+
+      // Build tile SVG using DOM API (avoids all regex bugs from ADR §4)
+      const parser = new DOMParser();
+      const serializer = new XMLSerializer();
+      // Serialise source SVG — XMLSerializer naturally omits XML declaration
+      const sourceSvgStr = serializer.serializeToString(svgEl);
+      const doc = parser.parseFromString(sourceSvgStr, 'image/svg+xml');
+      const tileSvg = doc.documentElement;
+
+      tileSvg.setAttribute('viewBox', `${vbX} ${vbY} ${vbW} ${vbH}`);
+      tileSvg.setAttribute('width',  t.pageW_px);
+      tileSvg.setAttribute('height', t.pageH_px);
+      tileSvg.setAttribute('preserveAspectRatio', 'none');
+
+      // Inject white background rect as first child (ADR §3)
+      const bg = doc.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      bg.setAttribute('x', vbX); bg.setAttribute('y', vbY);
+      bg.setAttribute('width', vbW); bg.setAttribute('height', vbH);
+      bg.setAttribute('fill', 'white');
+      tileSvg.insertBefore(bg, tileSvg.firstChild);
+
+      // Inject page marker if requested
+      if (showMarkers) {
+        const markerG = doc.createElementNS('http://www.w3.org/2000/svg', 'g');
+        // Dashed border
+        const rect = doc.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        const inset = Math.max(2, t.overlap * 0.3);
+        rect.setAttribute('x', vbX + inset); rect.setAttribute('y', vbY + inset);
+        rect.setAttribute('width', vbW - inset*2); rect.setAttribute('height', vbH - inset*2);
+        rect.setAttribute('fill', 'none');
+        rect.setAttribute('stroke', '#aaa');
+        rect.setAttribute('stroke-width', Math.max(1, t.tileW * 0.002));
+        rect.setAttribute('stroke-dasharray', `${t.tileW * 0.01},${t.tileW * 0.005}`);
+        // Page label
+        const txt = doc.createElementNS('http://www.w3.org/2000/svg', 'text');
+        txt.setAttribute('x', vbX + inset * 2);
+        txt.setAttribute('y', vbY + inset * 2 + t.tileH * 0.03);
+        txt.setAttribute('font-size', t.tileH * 0.025);
+        txt.setAttribute('fill', '#999');
+        txt.setAttribute('font-family', 'sans-serif');
+        txt.textContent = `Page ${pageNum}/${total} [${col+1},${row+1}]`;
+        markerG.appendChild(rect);
+        markerG.appendChild(txt);
+        tileSvg.appendChild(markerG);
+      }
+
+      // Rasterise tile to canvas
+      const tileStr = serializer.serializeToString(doc);
+      const tileBlob = new Blob([tileStr], { type: 'image/svg+xml' });
+      const tileUrl = URL.createObjectURL(tileBlob);
+
+      const img = await new Promise((resolve, reject) => {
+        const i = new Image();
+        i.onload  = () => resolve(i);
+        i.onerror = reject;
+        i.src = tileUrl;
+      });
+
+      const canvas = document.createElement('canvas');
+      canvas.width  = t.pageW_px;
+      canvas.height = t.pageH_px;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = 'white';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(tileUrl);
+
+      const q = getQuality();
+      // Get image as blob (raw bytes) rather than data URL — avoids jsPDF
+      // storing the uncompressed base64 representation in the PDF stream.
+      const imgBlob = await new Promise(r =>
+        canvas.toBlob(r, q.fmt === 'PNG' ? 'image/png' : 'image/jpeg', q.q)
+      );
+      const imgBytes = new Uint8Array(await imgBlob.arrayBuffer());
+
+      if (pageNum > 1) pdf.addPage([t.pageW_mm, t.pageH_mm],
+        t.pageW_mm > t.pageH_mm ? 'landscape' : 'portrait');
+      pdf.addImage(
+        imgBytes, q.fmt,
+        0, 0, t.pageW_mm, t.pageH_mm,
+        undefined, 'FAST'   // alias=undefined, compression=FAST (deflate)
+      );
+
+      setProgress(pageNum / total, `Page ${pageNum} of ${total} done.`);
+      // Yield to browser between tiles so progress updates paint
+      await new Promise(r => setTimeout(r, 0));
+    }
+  }
+
+  setProgress(1, 'Saving PDF…');
+  const pdfBlob = pdf.output('blob');
+  triggerDownload(pdfBlob, baseName() + '.pdf');
+  document.getElementById('exportBtn').disabled = false;
+  closeExport();
+}
+
+// ── Helpers ─────────────────────────────────────────────────────
+function svgToImage(svgEl, w, h) {
+  const serializer = new XMLSerializer();
+  const svgStr = serializer.serializeToString(svgEl);
+  const blob = new Blob([svgStr], { type: 'image/svg+xml' });
+  const url  = URL.createObjectURL(blob);
+  return new Promise((resolve, reject) => {
+    const img = new Image(w, h);
+    img.onload  = () => { URL.revokeObjectURL(url); resolve(img); };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
+function triggerDownload(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a   = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+function setProgress(fraction, label) {
+  document.getElementById('progressFill').style.width = (fraction * 100) + '%';
+  document.getElementById('progressLabel').textContent = label;
+}
+
+function baseName() {
+  // Use active rendered tab name if available, else filename
+  const tabName = renderedTabs[activeViewIdx]?.name;
+  const fname   = modules.length > 0
+    ? modules[activeEditorIdx]?.filename
+    : currentFilename;
+  const raw = tabName || fname || 'diagram';
+  return raw.replace(/\.(yaml|yml|gsn\.yaml)$/i, '');
+}
+
+// ── Options summary ─────────────────────────────────────────────
+function updateSummary() {
+  const active = getActiveOpts();
+  const badge = document.getElementById('optsBadge');
+  const bar   = document.getElementById('activeBar');
+  badge.textContent = active.length;
+  badge.classList.toggle('on', active.length > 0);
+  bar.classList.toggle('on', active.length > 0);
+  bar.innerHTML = active.length
+    ? '<span style="color:var(--text-dim);font-size:10px;margin-right:4px;">Options:</span>'
+      + active.map(a => `<span class="opt-chip${a.p?' pending':''}">${esc(a.label)}</span>`).join('')
+    : '';
+}
+
+function getActiveOpts() {
+  const out = [];
+  const wrap = parseInt(document.getElementById('optWrap').value) || 0;
+  if (wrap > 0) out.push({ label: `--wrap=${wrap}`, p: false });
+  const leg = document.querySelector('input[name="legend"]:checked')?.value;
+  if (leg === 'full') out.push({ label: '--full-legend', p: false });
+  if (leg === 'none') out.push({ label: '--no-legend', p: false });
+  tags.layers.forEach(l => out.push({ label: `--layer=${l}`, p: false }));
+  // Phase 2
+  const p2 = [
+    ['optCheck','--check'],['optExtCheck','--extended-check'],
+    ['optDialectic','--warn-dialectic'],['optNoArg','--no-arg'],
+    ['optNoFull','--no-full'],['optNoArch','--no-arch'],
+    ['optNoEv','--no-evidence'],['optStats','--statistics'],
+    ['optEmbedCss','--embed-css']
+  ];
+  p2.forEach(([id,flag]) => { if (document.getElementById(id)?.checked) out.push({ label: flag+' ⏳', p: true }); });
+  tags.exclude.forEach(m => out.push({ label: `--exclude=${m} ⏳`, p: true }));
+  tags.mask.forEach(m => out.push({ label: `--mask=${m} ⏳`, p: true }));
+  return out;
+}
+
+document.querySelectorAll('input[type="checkbox"],input[type="radio"],input[type="number"]')
+  .forEach(el => el.addEventListener('change', updateSummary));
+
+// ── Tags ────────────────────────────────────────────────────────
+const tagCfg = {
+  layers:      { box: 'layersBox',  input: 'layerIn'   },
+  exclude:     { box: 'excludeBox', input: 'excludeIn' },
+  stylesheets: { box: 'ssBox',      input: 'ssIn'      },
+  mask:        { box: 'maskBox',    input: 'maskIn'    },
+};
+
+function tagKey(e, group) {
+  if (e.key === 'Enter' || e.key === ',') {
+    e.preventDefault();
+    const val = e.target.value.trim().replace(/,$/, '');
+    if (val && !tags[group].includes(val)) { tags[group].push(val); renderTags(group); updateSummary(); }
+    e.target.value = '';
+  } else if (e.key === 'Backspace' && e.target.value === '' && tags[group].length) {
+    tags[group].pop(); renderTags(group); updateSummary();
+  }
+}
+
+function removeTag(group, idx) { tags[group].splice(idx,1); renderTags(group); updateSummary(); }
+
+function renderTags(group) {
+  const { box, input } = tagCfg[group];
+  const container = document.getElementById(box);
+  const inp = document.getElementById(input);
+  container.querySelectorAll('.tag').forEach(t => t.remove());
+  tags[group].forEach((val, i) => {
+    const t = document.createElement('span');
+    t.className = 'tag';
+    t.innerHTML = `${esc(val)}<span class="tag-x" onclick="removeTag('${group}',${i})">×</span>`;
+    container.insertBefore(t, inp);
+  });
+}
+
+// ── Reset ───────────────────────────────────────────────────────
+function resetOpts() {
+  document.getElementById('optWrap').value = 0;
+  document.getElementById('legShort').checked = true;
+  Object.keys(tags).forEach(g => { tags[g] = []; renderTags(g); });
+  document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+  updateSummary();
+}
+
+// ── Modal ───────────────────────────────────────────────────────
+function openModal()  { document.getElementById('modalBackdrop').classList.add('open'); }
+function closeModal() { document.getElementById('modalBackdrop').classList.remove('open'); }
+function backdropClick(e) { if (e.target === document.getElementById('modalBackdrop')) closeModal(); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+// ── Misc ────────────────────────────────────────────────────────
+function setStatus(type, text) {
+  const el = document.getElementById('status');
+  el.className = `status ${type}`;
+  el.textContent = text;
+}
+
+function updateLineCount() {
+  const lines = (document.getElementById('yamlInput').value.match(/\n/g) || []).length + 1;
+  document.getElementById('lineCount').textContent = `${lines} lines`;
+}
+document.getElementById('yamlInput').addEventListener('input', updateLineCount);
+
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+</script>
+</body>
+</html>
