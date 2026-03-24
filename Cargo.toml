@@ -44,7 +44,7 @@ wasm = ["wasm-bindgen"]
 # move filesystem-only deps here if needed later
 
 [dev-dependencies]
-assert_cmd = "2.1"
+assert_cmd = "2.2"
 assert_fs = "1.1"
 predicates = { version = "3.1", features = ["normalize-line-endings"] }
 
